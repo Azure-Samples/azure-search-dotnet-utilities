@@ -1,57 +1,18 @@
-# Project Name
+# C# utility code samples for Azure Cognitive Search
 
-(short, 1-3 sentenced, description of the project)
+This repository contains C# code samples that help you perform specific tasks, such as checking storage or exporting content from an index. 
 
-## Features
+## In this repository
 
-This project framework provides the following features:
+| Sample | Description |
+|--------|-------------|
+| check-storage-usage | Demonstrates checking storage usage of an Azure Cognitive Search service on a schedule. This sample may be modified to [adjust the service's capacity](https://docs.microsoft.com/azure/search/search-capacity-planning) or send an alert when the storage usage exceeds a predefined threshold. |
+| data-lake-gen2-acl-indexing | Proof-of-concept console app that demonstrates how to index a subset of your Azure Data Lake Gen2 data by using access control lists to allow certain files and directories to be accessed by an indexer in Azure Cognitive Search. The indexer connection to Azure Data Lake Gen2 uses a managed identity and role assignments for selective data access. The sample loads data and sets up permissions programmatically, and then runs the indexer to create and load a search index. |
+| export-data | A console application that exports data from an Azure Cognitive Search service. |
+| index-backup-restore | This .NET Core console app backs up an index (schema and documents) to your local computer and then uses the stored backup to recreate the index in a target search service that you specify. This sample can be helpful if you want to move an index into a different pricing tier.|
 
-* Feature 1
-* Feature 2
-* ...
+## More resources
 
-## Getting Started
+See [.NET samples in Azure Cognitive Search](https://learn.microsoft.com/azure/search/samples-dotnet) for a comprehensive list of all Azure Cognitive Search code samples that run on .NET.
 
-### Prerequisites
-
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
-
-### Installation
-
-(ideally very short)
-
-- npm install [package name]
-- mvn install
-- ...
-
-### Quickstart
-(Add steps to get up and running quickly)
-
-1. git clone [repository clone url]
-2. cd [repository name]
-3. ...
-
-
-## Demo
-
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
-
-## Resources
-
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
+See [Azure Cognitive Search documentation](ttps://learn.microsoft.com/azure/search) for product documentation.
