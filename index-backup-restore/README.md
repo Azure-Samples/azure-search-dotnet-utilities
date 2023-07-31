@@ -38,11 +38,7 @@ Also, as an extra precaution, it is best if there are no changes being made to t
 1. Clone or download this sample repository.
 1. Extract contents if the download is a zip file. Make sure the files are read-write.
 
-This sample is available in two versions:
-
-+ **v10** uses the previous [Microsoft.Azure.Search](https://docs.microsoft.com/en-us/dotnet/api/overview/azure/search/client10) client libraries
-
-+ **v11** uses the new [Azure.Search.Documents](https://docs.microsoft.com/dotnet/api/overview/azure/search.documents-readme) client library, highly recommended for all new projects
+This sample is available in two versions. **V10** uses the deprecated [Microsoft.Azure.Search](https://learn.microsoft.com/dotnet/api/microsoft.azure.search) client libraries. We recommend **v11**and the [Azure.Search.Documents](https://docs.microsoft.com/dotnet/api/overview/azure/search.documents-readme) client library for all new projects.
 
 ## Run the sample
 

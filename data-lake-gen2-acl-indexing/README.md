@@ -74,15 +74,15 @@ Open the **appsettings.json** file in your local copy of the sample application 
 
     + Find the Admin API key in the [Keys tab](https://docs.microsoft.com/azure/search/search-security-api-keys#find-existing-keys) on the search service's portal page.
 
-1. "searchEndpoint": "https://<search-service-name>.search.windows.net":
+1. "searchEndpoint": `https://<search-service-name>.search.windows.net`:
 
     + Find the URI in the [search service's Overview portal page](https://docs.microsoft.com/azure/search/search-manage#overview-home-page).
 
-1. "dataLakeResourceID": "/subscriptions/<subscription-id>/resourceGroups/<resource-group-name>/providers/Microsoft.Storage/storageAccounts/<storageaccountname>":
+1. "dataLakeResourceID": `/subscriptions/<subscription-id>/resourceGroups/<resource-group-name>/providers/Microsoft.Storage/storageAccounts/<storageaccountname>`:
 
     + Find the resource ID in the storage account's service dashboard in the portal. Go to Settings > Endpoint > Data Lake Storage, and then copy the resource ID.
 
-1. "dataLakeEndpoint": "https://<storageaccountname>.dfs.core.windows.net":
+1. "dataLakeEndpoint": `https://<storageaccountname>.dfs.core.windows.net`:
 
     + Find the endpoint in the storage account's service dashboard in the portal. Go to Settings > Endpoint > Data Lake Storage, and then copy the primary endpoint.
 
