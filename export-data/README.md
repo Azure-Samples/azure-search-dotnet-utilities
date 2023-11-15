@@ -2,24 +2,24 @@
 page_type: sample
 languages:
   - csharp
-name: Export data from an Azure Cognitive Search index
-description: "Export data from an Azure Cognitive Search service. This example builds a C# Console Application using the Azure Cognitive Search .NET SDK."
+name: Export data from an Azure AI Search index
+description: "Export data from an Azure AI Search service. This example builds a C# Console Application using the Azure AI Search .NET SDK."
 products:
   - azure
   - azure-cognitive-search
 urlFragment: export-data
 ---
 
-# Export Azure Cognitive Search service index data
+# Export Azure AI Search service index data
 
 ![Flask sample MIT license badge](https://img.shields.io/badge/license-MIT-green.svg)
 
-Export data from an Azure Cognitive Search service. This .NET application runs on the command line.
+Export data from an Azure AI Search service. This .NET application runs on the command line.
 
 ## Prerequisites
 
 - [Visual Studio](https://visualstudio.microsoft.com/downloads/)
-- [Azure Cognitive Search service](https://docs.microsoft.com/azure/search/search-create-service-portal)
+- [Azure AI Search service](https://docs.microsoft.com/azure/search/search-create-service-portal)
 
 ## Setup
 
@@ -259,4 +259,4 @@ Example output in `my-index-documents.json`:
 
 ## Next steps
 
-You can learn more about Azure Cognitive Search on the [official documentation site](https://docs.microsoft.com/azure/search).
+You can learn more about Azure AI Search on the [official documentation site](https://docs.microsoft.com/azure/search).

@@ -3,7 +3,7 @@ page_type: sample
 languages:
   - csharp
 name: Index Azure Data Lake Gen2 using a managed identity
-description: "Index a subset of your Azure Data Lake Gen2 data by using access control lists to allow certain files and directories to be accessed by an indexer in Azure Cognitive Search."
+description: "Index a subset of your Azure Data Lake Gen2 data by using access control lists to allow certain files and directories to be accessed by an indexer in Azure AI Search."
 products:
   - azure
   - azure-cognitive-search
@@ -12,7 +12,7 @@ urlFragment: data-lake-gen2-acl-indexing
 
 # Index Data Lake Gen2 using Azure AD
 
-This Azure Cognitive Search sample shows you how to configure an indexer connection to Azure Data Lake Gen2 that uses a managed identity and role assignments for selective data access. The sample loads data and sets up permissions for data access, and then runs the indexer to create and load a search index.
+This Azure AI Search sample shows you how to configure an indexer connection to Azure Data Lake Gen2 that uses a managed identity and role assignments for selective data access. The sample loads data and sets up permissions for data access, and then runs the indexer to create and load a search index.
 
 Normally, when setting up [managed identity with Azure Blob Storage or Data Lake Storage](https://docs.microsoft.com/azure/search/search-howto-managed-identities-storage#2---add-a-role-assignment), the [Storage Blob Data Reader role](https://docs.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-reader) is used. However, this role grants full access to all files in the storage account, which may be undesirable if you are using [Access Control Lists](https://docs.microsoft.com/azure/storage/blobs/data-lake-storage-access-control) for more selective access. This sample shows you how to constrain data access to specific files and users.
 
@@ -20,7 +20,7 @@ Normally, when setting up [managed identity with Azure Blob Storage or Data Lake
 
 + [.NET 3](https://dotnet.microsoft.com/download/dotnet/5.0)
 + [Git](https://git-scm.com/downloads)
-+ [Azure Cognitive Search service](https://docs.microsoft.com/azure/search/search-create-service-portal) on a billable tier (free tier is not supported)
++ [Azure AI Search service](https://docs.microsoft.com/azure/search/search-create-service-portal) on a billable tier (free tier is not supported)
 + [Azure Storage](https://docs.microsoft.com/azure/storage/common/storage-account-create?tabs=azure-portal) with the "Enable hierarchical namespace" option
 + Client app: [Visual Studio](https://visualstudio.microsoft.com/downloads/), PowerShell, or [Visual Studio Code](https://code.visualstudio.com/download) with the [Azure Tools](https://docs.microsoft.com/dotnet/azure/configure-vs-code#install-the-azure-tools-extension-pack) extension pack
 
@@ -38,7 +38,7 @@ git clone https://github.com/Azure-Samples/azure-search-dotnet-samples
 
 1. [Create a resource group if one doesn't already exist](https://docs.microsoft.com/azure/azure-resource-manager/management/manage-resource-groups-portal#create-resource-groups).
 
-1. [Create a Cognitive Search service if one doesn't already exist](https://docs.microsoft.com/azure/search/search-create-service-portal), at [Basic tier](https://azure.microsoft.com/pricing/details/search/) or above.
+1. [Create an Azure AI Search service if one doesn't already exist](https://docs.microsoft.com/azure/search/search-create-service-portal), at [Basic tier](https://azure.microsoft.com/pricing/details/search/) or above.
 
 1. Enable a managed identity for your search service using either of the following approaches:
 

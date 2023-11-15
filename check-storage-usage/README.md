@@ -2,8 +2,8 @@
 page_type: sample
 languages:
   - csharp
-name: Check storage usage of Azure Cognitive Search
-description: "Demonstrates checking storage usage of an Azure Cognitive Search service. This example builds a C# Function App using the Azure Cognitive Search .NET SDK."
+name: Check storage usage of Azure AI Search
+description: "Demonstrates checking storage usage of an Azure AI Search service. This example builds a C# Function App using the Azure AI Search .NET SDK."
 products:
   - azure
   - azure-cognitive-search
@@ -11,18 +11,18 @@ products:
 urlFragment: check-storage-usage
 ---
 
-# Check Azure Cognitive Search service storage usage
+# Check Azure AI Search service storage usage
 
 ![Flask sample MIT license badge](https://img.shields.io/badge/license-MIT-green.svg)
 
-Demonstrates checking storage usage of an Azure Cognitive Search service on a schedule. This sample may be modified to [adjust the service's capacity](https://docs.microsoft.com/azure/search/search-capacity-planning) or send an alert when the storage usage exceeds a predefined threshold.
+Demonstrates checking storage usage of an Azure AI Search service on a schedule. This sample may be modified to [adjust the service's capacity](https://docs.microsoft.com/azure/search/search-capacity-planning) or send an alert when the storage usage exceeds a predefined threshold.
 
 This .NET Core application runs as an [Azure Function](https://docs.microsoft.com/azure/azure-functions/functions-overview). The program [is deployed to Azure](https://docs.microsoft.com/azure/azure-functions/functions-create-your-first-function-visual-studio?tabs=in-process) using [Visual Studio](https://visualstudio.microsoft.com/downloads/) and [runs automatically on a predefined schedule](https://docs.microsoft.com/azure/azure-functions/functions-create-scheduled-function).
 
 ## Prerequisites
 
 - [Visual Studio](https://visualstudio.microsoft.com/downloads/)
-- [Azure Cognitive Search service](https://docs.microsoft.com/azure/search/search-create-service-portal)
+- [Azure AI Search service](https://docs.microsoft.com/azure/search/search-create-service-portal)
 - [Azure Functions](https://docs.microsoft.com/azure/azure-functions/functions-overview)
 - [Azure Communication Services](https://docs.microsoft.com/azure/communication-services/overview)
 
@@ -57,4 +57,4 @@ This .NET Core application runs as an [Azure Function](https://docs.microsoft.co
 
 ## Next steps
 
-You can learn more about Azure Cognitive Search on the [official documentation site](https://docs.microsoft.com/azure/search).
+You can learn more about Azure AI Search on the [official documentation site](https://docs.microsoft.com/azure/search).
