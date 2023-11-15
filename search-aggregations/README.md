@@ -17,7 +17,7 @@ In this sample, create a simple search index and upload random data to it. This 
 
 ## Prerequisites
 
-+ [Azure Cognitive Search](search-create-app-portal.md)
++ [Azure AI Search](search-create-app-portal.md)
 + [Visual Studio](https://visualstudio.microsoft.com/downloads/)
 + [Azure.Search.Documents NuGet package](https://www.nuget.org/packages/Azure.Search.Documents/)
 
@@ -45,4 +45,4 @@ In contrast with other tutorials, this one uses an index with randomly generated
 
 ## Next steps
 
-You can learn more about Azure Cognitive Search on the [official documentation site](https://docs.microsoft.com/azure/search).
+You can learn more about Azure AI Search on the [official documentation site](https://docs.microsoft.com/azure/search).
