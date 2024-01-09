@@ -14,17 +14,17 @@ namespace export_data
     {
         private readonly PartitionFile _partitionFile;
         private readonly SearchClient _searchClient;
-        private readonly string _exportDirectory;
+        private readonly IPartitionWriter _partitionWriter;
         private readonly int _concurrentPartitions;
         private readonly int _pageSize;
         private readonly int[] _partitionIdsToInclude;
         private readonly ISet<int> _partitionIdsToExclude;
 
-        public PartitionExporter(PartitionFile partitionFile, SearchClient searchClient, SearchIndex index, string exportDirectory, int concurrentPartitions, int pageSize, int[] partitionIdsToInclude, ISet<int> partitionIdsToExclude, string[] fieldsToInclude, ISet<string> fieldsToExclude) : base(index, fieldsToInclude, fieldsToExclude)
+        public PartitionExporter(PartitionFile partitionFile, IPartitionWriter partitionWriter, SearchClient searchClient, SearchIndex index, int concurrentPartitions, int pageSize, int[] partitionIdsToInclude, ISet<int> partitionIdsToExclude, string[] fieldsToInclude, ISet<string> fieldsToExclude) : base(index, fieldsToInclude, fieldsToExclude)
         {
             _partitionFile = partitionFile;
+            _partitionWriter = partitionWriter;
             _searchClient = searchClient;
-            _exportDirectory = exportDirectory;
             _concurrentPartitions = concurrentPartitions;
             _pageSize = pageSize;
             _partitionIdsToInclude = partitionIdsToInclude;
@@ -33,11 +33,6 @@ namespace export_data
 
         public override async Task ExportAsync()
         {
-            if (!Directory.Exists(_exportDirectory))
-            {
-                Directory.CreateDirectory(_exportDirectory);
-            }
-
             var cancellationTokenSource = new CancellationTokenSource();
             var partitions = new ConcurrentQueue<PartitionToExport>();
             if (_partitionIdsToInclude != null && _partitionIdsToInclude.Length > 0)
@@ -86,8 +81,6 @@ namespace export_data
 
         private async Task ExportPartitionAsync(int partitionId, Partition partition, CancellationToken cancellationToken)
         {
-            string exportPath = Path.Combine(_exportDirectory, $"{_searchClient.IndexName}-{partitionId}-documents.json");
-            using FileStream exportOutput = File.Open(exportPath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
             var options = new SearchOptions
             {
                 Filter = partition.Filter,
@@ -96,24 +89,9 @@ namespace export_data
             };
             AddSelect(options);
             options.OrderBy.Add($"{_partitionFile.FieldName} asc");
+            SearchResults<SearchDocument> searchResults = await _searchClient.SearchAsync<SearchDocument>(searchText: string.Empty, options: options, cancellationToken: cancellationToken);
 
-            int lastPageSize;
-            do
-            {
-                lastPageSize = 0;
-                SearchResults<SearchDocument> searchResults = await _searchClient.SearchAsync<SearchDocument>(searchText: string.Empty, options: options, cancellationToken: cancellationToken);
-                await foreach (Page<SearchResult<SearchDocument>> resultPage in searchResults.GetResultsAsync().AsPages())
-                {
-                    lastPageSize = resultPage.Values.Count;
-                    options.Skip += resultPage.Values.Count;
-                    foreach (SearchResult<SearchDocument> searchResult in resultPage.Values)
-                    {
-                        JsonSerializer.Serialize(exportOutput, searchResult.Document);
-                        exportOutput.WriteByte((byte)'\n');
-                    }
-                }
-            }
-            while (lastPageSize > 0);
+            await _partitionWriter.WritePartitionAsync(partitionId, searchResults, cancellationToken);
         }
 
         private record PartitionToExport

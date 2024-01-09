@@ -202,12 +202,12 @@ namespace export_data
                 SearchClient searchClient = InitializeSearchClient(partitionFile.Endpoint, adminKey, partitionFile.IndexName);
                 SearchIndexClient searchIndexClient = InitializeSearchIndexClient(partitionFile.Endpoint, adminKey);
                 SearchIndex index = await searchIndexClient.GetIndexAsync(partitionFile.IndexName);
-
+                var partitionWriter = new FilePartitionWriter(exportDirectory, index.Name);
                 await new PartitionExporter(
                     partitionFile,
+                    partitionWriter,
                     searchClient,
                     index,
-                    exportDirectory,
                     concurrentPartitions,
                     pageSize,
                     partitionsToInclude,
