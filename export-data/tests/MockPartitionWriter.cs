@@ -27,11 +27,21 @@ namespace tests
             {
                 foreach (SearchResult<SearchDocument> searchResult in resultPage.Values)
                 {
-                    partition[_key] = searchResult.Document;
+                    partition[searchResult.Document[_key].ToString()] = searchResult.Document;
                 }
             }
 
             _exportedPartitions[partitionId] = partition;
+        }
+
+        public IReadOnlyDictionary<int, IReadOnlyDictionary<string, SearchDocument>> GetExportedPartitions()
+        {
+            var results = new Dictionary<int, IReadOnlyDictionary<string, SearchDocument>>();
+            foreach (KeyValuePair<int, Dictionary<string, SearchDocument>> partition in _exportedPartitions)
+            {
+                results[partition.Key] = partition.Value;
+            }
+            return results;
         }
     }
 }

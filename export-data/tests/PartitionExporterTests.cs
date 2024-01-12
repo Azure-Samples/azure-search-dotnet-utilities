@@ -5,6 +5,7 @@ using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
 using export_data;
 using Microsoft.Extensions.Configuration;
+using System.Globalization;
 using System.Net;
 
 namespace tests
@@ -12,17 +13,14 @@ namespace tests
     [TestClass]
     public class PartitionExporterTests
     {
-        // Add seed to random for deterministic tests
-        private static readonly Random random = new Random(0);
-        private const string TestIndexName = "ParititionExporterTest";
-        private const int TestDocumentCount = 525;
-        private const int TestPartitionSize = 50;
+        private const string TestIndexName = "paritition-exporter-test";
+        private const int TestDocumentCount = 1000;
+        private const int TestPartitionSize = 125;
         private static SearchIndexClient SearchIndexClient { get; set; }
         private static SearchClient SearchClient { get; set; }
         private static SearchField BoundField { get; } = new SearchField(name: "timestamp", SearchFieldDataType.DateTimeOffset);
         private static string KeyField { get; } = "id";
         private static readonly DateTimeOffset startDate = new DateTimeOffset(2022, 1, 1, 0, 0, 0, TimeSpan.Zero);
-        private static readonly DateTimeOffset[] DocumentIdToTimestamp = new DateTimeOffset[TestDocumentCount];
 
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
@@ -33,15 +31,18 @@ namespace tests
             var credential = new DefaultAzureCredential();
             SearchIndexClient = new SearchIndexClient(new Uri(configuration["searchEndpoint"]), credential);
             SearchIndexClient.CreateOrUpdateIndex(GetTestIndexDefinition());
-            var searchClient = new SearchClient(SearchIndexClient.Endpoint, TestIndexName, credential);
-            foreach (SearchDocument[] batch in SetupTestData())
+            SearchClient = new SearchClient(SearchIndexClient.Endpoint, TestIndexName, credential);
+            foreach (IEnumerable<SearchDocument> batch in SetupTestData())
             {
-                searchClient.UploadDocuments(batch);
+                SearchClient.UploadDocuments(batch);
             }
+
+            // Wait for updates to propogate
+            Task.Delay(TimeSpan.FromSeconds(3)).Wait();
         }
 
         [ClassCleanup]
-        public static void ClassCleanup(TestContext _)
+        public static void ClassCleanup()
         {
             SearchIndexClient.DeleteIndex(TestIndexName);
         }
@@ -51,7 +52,6 @@ namespace tests
         {
             var lowerBound = await Bound.FindLowerBoundAsync(BoundField, SearchClient);
             var upperBound = await Bound.FindUpperBoundAsync(BoundField, SearchClient);
-
 
             List<Partition> partitions = await new PartitionGenerator(SearchClient, BoundField, lowerBound, upperBound, partitionMaximumDocumentCount: TestPartitionSize).GeneratePartitions();
             var partitionFile = new PartitionFile
@@ -71,12 +71,30 @@ namespace tests
                 GetTestIndexDefinition(),
                 concurrentPartitions: 2,
                 pageSize: 1000,
-                partitionIdsToInclude: null,
+                partitionIdsToInclude: Enumerable.Range(0, partitions.Count).ToArray(),
                 partitionIdsToExclude: null,
                 fieldsToInclude: null,
                 fieldsToExclude: null);
 
             await partitionExporter.ExportAsync();
+
+            IReadOnlyDictionary<int, IReadOnlyDictionary<string, SearchDocument>> exportedPartitions = mockPartitionWriter.GetExportedPartitions();
+            Assert.AreEqual(8, exportedPartitions.Count, $"Got {exportedPartitions.Count} partitions, expected 11");
+            for (int i = 0; i < 8; i++)
+            {
+                IReadOnlyDictionary<string, SearchDocument> partition = exportedPartitions[i];
+                Assert.AreEqual(125, partition.Count, $"Unexpected partition length {partition.Count} for partition {i}");
+
+                for (int j = 0; j < partition.Count; j++)
+                {
+                    int expectedId = (i * 125) + j;
+                    SearchDocument partitionedDocument = partition.GetValueOrDefault(expectedId.ToString());
+                    Assert.IsNotNull(partitionedDocument, $"Missing document {expectedId} in partition {i}");
+                    string actualTimestamp = partitionedDocument["timestamp"].ToString();
+                    string expectedTimestamp = DateTimeOffsetForDocument(expectedId).ToString("yyyy-MM-ddTHH:mm:ssZ");
+                    Assert.AreEqual(expectedTimestamp, actualTimestamp);
+                }
+            }
         }
 
         private static SearchIndex GetTestIndexDefinition() =>
@@ -84,31 +102,32 @@ namespace tests
             {
                 Fields =
                 {
-                    new SearchField(name: "id", SearchFieldDataType.String),
-                    new SearchField(name: "timestamp", SearchFieldDataType.DateTimeOffset),
-                    new SearchField(name: "value", SearchFieldDataType.String)
+                    new SearchField(name: "id", SearchFieldDataType.String) { IsKey = true },
+                    new SearchField(name: "timestamp", SearchFieldDataType.DateTimeOffset)
                 }
             };
 
-        private static IEnumerable<SearchDocument[]> SetupTestData()
+        private static IEnumerable<IEnumerable<SearchDocument>> SetupTestData()
         {
-            int batchSize = 10000;
-            for (int i = 0; i < TestDocumentCount; i += batchSize)
+            var batch = new List<SearchDocument>();
+            for (int i = 0; i < TestDocumentCount; i++)
             {
-                var documents = new SearchDocument[batchSize];
-                for (int j = 0; j < batchSize; j++)
+                var timestamp = DateTimeOffsetForDocument(i);
+                batch.Add(new SearchDocument(new Dictionary<string, object>
                 {
-                    int id = i + j;
-                    var timestamp = DateTimeOffsetForDocument(id);
-                    DocumentIdToTimestamp[id] = timestamp;
-                    documents[j] = new SearchDocument(new Dictionary<string, object>
-                    {
-                        ["id"] = id.ToString(),
-                        ["timestamp"] = timestamp
-                    });
-
+                    ["id"] = i.ToString(),
+                    ["timestamp"] = timestamp
+                }));
+                if (batch.Count >= 1000)
+                {
+                    yield return batch;
+                    batch = new List<SearchDocument>();
                 }
-                yield return documents;
+            }
+
+            if (batch.Count > 0)
+            {
+                yield return batch;
             }
         }
 

@@ -44,7 +44,7 @@ namespace export_data
             // Keep splitting the initial partition in half until all partitions are <= 100,000 documents
             while (dataToPartition.TryPop(out Partition nextPartition))
             {
-                if (nextPartition.DocumentCount <= MaximumDocumentCount)
+                if (nextPartition.DocumentCount <= _partitionMaximumDocumentCount)
                 {
                     partitions.Add(nextPartition);
                     continue;
@@ -74,7 +74,7 @@ namespace export_data
             while (partitionEnumerator.MoveNext())
             {
                 Partition mergedPartition = nextPartition.Merge(partitionEnumerator.Current, _field.Name, _lowerBound);
-                if (mergedPartition.DocumentCount > MaximumDocumentCount)
+                if (mergedPartition.DocumentCount > _partitionMaximumDocumentCount)
                 {
                     mergedPartitions.Add(nextPartition);
                     nextPartition = partitionEnumerator.Current;
