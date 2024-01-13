@@ -1,6 +1,8 @@
 ﻿using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Text.Json;
 using Azure;
+using Azure.Identity;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
@@ -9,6 +11,8 @@ namespace export_data
 {
     public static class Program
     {
+        private const int MaximumPartitionSize = 100000;
+
         // Supported field types for the partition bounds
         // To learn more about field types, please visit https://learn.microsoft.com/rest/api/searchservice/supported-data-types
         private static readonly SearchFieldDataType[] SupportedFieldTypes = new[]
@@ -27,9 +31,9 @@ namespace export_data
             };
             var adminKeyOption = new Option<string>(
                 name: "--admin-key",
-                description: "Admin key to the search service to export data from")
+                description: "Admin key to the search service to export data from. If not specified - uses your Entra identity")
             {
-                IsRequired = true
+                IsRequired = false
             };
             var indexOption = new Option<string>(
                 name: "--index-name",
@@ -73,6 +77,10 @@ namespace export_data
                 name: "--page-size",
                 description: "Page size to use when running export queries. Default is 1000",
                 getDefaultValue: () => 1000);
+            var partitionSizeOption = new Option<int>(
+                name: "--partition-size",
+                description: "Maximum size of a partition. Defaults to 100,000. Cannot exceed 100,000",
+                getDefaultValue: () => MaximumPartitionSize);
             var includePartitionsOption = new Option<int[]>(
                 name: "--include-partition",
                 description: "List of partitions by index to include in the export. Example: --include-partition 0 --include-partition 1 only runs the export on first 2 partitions",
@@ -124,10 +132,16 @@ namespace export_data
                 fieldOption,
                 lowerBoundOption,
                 upperBoundOption,
+                partitionSizeOption,
                 partitionFileOption
             };
-            partitionCommand.SetHandler(async (string endpoint, string adminKey, string indexName, string fieldName, string inputLowerBound, string inputUpperBound, string partitionFilePath) =>
+            partitionCommand.SetHandler(async (string endpoint, string adminKey, string indexName, string fieldName, string inputLowerBound, string inputUpperBound, int partitionSize, string partitionFilePath) =>
             {
+                if (partitionSize < 0 || partitionSize > MaximumPartitionSize)
+                {
+                    throw new ArgumentException($"Partition size {partitionSize} must be between 0 and {MaximumPartitionSize}");
+                }
+
                 if (string.IsNullOrEmpty(partitionFilePath))
                 {
                     partitionFilePath = $"{indexName}-partitions.json";
@@ -155,7 +169,7 @@ namespace export_data
                 }
 
 
-                List<Partition> partitions = await new PartitionGenerator(searchClient, field, lowerBound, upperBound).GeneratePartitions();
+                List<Partition> partitions = await new PartitionGenerator(searchClient, field, lowerBound, upperBound, partitionSize).GeneratePartitions();
                 var output = new PartitionFile
                 {
                     Endpoint = endpoint,
@@ -166,7 +180,7 @@ namespace export_data
                 };
                 File.WriteAllText(partitionFilePath, JsonSerializer.Serialize(output, options: Util.SerializerOptions));
                 Console.WriteLine($"Wrote partitions to {partitionFilePath}");
-            }, endpointOption, adminKeyOption, indexOption, fieldOption, lowerBoundOption, upperBoundOption, partitionFileOption);
+            }, endpointOption, adminKeyOption, indexOption, fieldOption, lowerBoundOption, upperBoundOption, partitionSizeOption, partitionFileOption);
 
             var exportPartitionsCommand = new Command(name: "export-partitions", description: "Exports data from a search index using a pre-generated partition file from partition-index")
             {
@@ -202,12 +216,12 @@ namespace export_data
                 SearchClient searchClient = InitializeSearchClient(partitionFile.Endpoint, adminKey, partitionFile.IndexName);
                 SearchIndexClient searchIndexClient = InitializeSearchIndexClient(partitionFile.Endpoint, adminKey);
                 SearchIndex index = await searchIndexClient.GetIndexAsync(partitionFile.IndexName);
-
+                var partitionWriter = new FilePartitionWriter(exportDirectory, index.Name);
                 await new PartitionExporter(
                     partitionFile,
+                    partitionWriter,
                     searchClient,
                     index,
-                    exportDirectory,
                     concurrentPartitions,
                     pageSize,
                     partitionsToInclude,
@@ -261,9 +275,20 @@ namespace export_data
         public static async Task<(SearchField field, SearchClient searchClient)> InitializeFieldAndSearchClientAsync(string endpoint, string adminKey, string indexName, string fieldName)
         {
             var endpointUri = new Uri(endpoint);
-            var credential = new AzureKeyCredential(adminKey);
-            var searchClient = new SearchClient(endpointUri, indexName, credential);
-            var searchIndexClient = new SearchIndexClient(endpointUri, credential);
+            SearchClient searchClient;
+            SearchIndexClient searchIndexClient;
+            if (!string.IsNullOrEmpty(adminKey))
+            {
+                var credential = new AzureKeyCredential(adminKey);
+                searchClient = new SearchClient(endpointUri, indexName, credential);
+                searchIndexClient = new SearchIndexClient(endpointUri, credential);
+            }
+            else
+            {
+                var credential = new DefaultAzureCredential();
+                searchClient = new SearchClient(endpointUri, indexName, credential);
+                searchIndexClient = new SearchIndexClient(endpointUri, credential);
+            }
             SearchField field = await GetFieldAsync(searchIndexClient, indexName, fieldName);
             return (field, searchClient);
         }
@@ -271,15 +296,23 @@ namespace export_data
         public static SearchClient InitializeSearchClient(string endpoint, string key, string indexName)
         {
             var endpointUri = new Uri(endpoint);
-            var credential = new AzureKeyCredential(key);
-            return new SearchClient(endpointUri, indexName, credential);
+            if (!string.IsNullOrEmpty(key))
+            {
+                return new SearchClient(endpointUri, indexName, new AzureKeyCredential(key));
+            }
+
+            return new SearchClient(endpointUri, indexName, new DefaultAzureCredential());
         }
 
         public static SearchIndexClient InitializeSearchIndexClient(string endpoint, string key)
         {
             var endpointUri = new Uri(endpoint);
-            var credential = new AzureKeyCredential(key);
-            return new SearchIndexClient(endpointUri, credential);
+            if (!string.IsNullOrEmpty(key))
+            {
+                return new SearchIndexClient(endpointUri, new AzureKeyCredential(key));
+            }
+
+            return new SearchIndexClient(endpointUri, new DefaultAzureCredential());
         }
 
         // Fetch the index definition and validate that the field meets the sortable and filterable requirements

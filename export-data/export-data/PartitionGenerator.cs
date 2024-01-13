@@ -1,7 +1,6 @@
 ﻿using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
-using System.Collections.Concurrent;
 
 namespace export_data
 {
@@ -16,6 +15,7 @@ namespace export_data
     {
         // Max page size is 100,000
         private const long MaximumDocumentCount = 100000;
+        private readonly long _partitionMaximumDocumentCount;
         // Search client for paging through results
         private readonly SearchClient _searchClient;
         // Sortable filterable field to partition documents
@@ -25,12 +25,13 @@ namespace export_data
         // Highest value for the field. Documents with a field value greater than this will not be partitioned
         private readonly object _upperBound;
 
-        public PartitionGenerator(SearchClient searchClient, SearchField field, object lowerBound, object upperBound)
+        public PartitionGenerator(SearchClient searchClient, SearchField field, object lowerBound, object upperBound, long partitionMaximumDocumentCount = -1)
         {
             _searchClient = searchClient;
             _field = field;
             _lowerBound = lowerBound;
             _upperBound = upperBound;
+            _partitionMaximumDocumentCount = partitionMaximumDocumentCount > 0 ? partitionMaximumDocumentCount : MaximumDocumentCount;
         }
 
         public async Task<List<Partition>> GeneratePartitions()
@@ -42,7 +43,7 @@ namespace export_data
             // Keep splitting the initial partition in half until all partitions are <= 100,000 documents
             while (dataToPartition.TryPop(out Partition nextPartition))
             {
-                if (nextPartition.DocumentCount <= MaximumDocumentCount)
+                if (nextPartition.DocumentCount <= _partitionMaximumDocumentCount)
                 {
                     partitions.Add(nextPartition);
                     continue;
@@ -72,7 +73,7 @@ namespace export_data
             while (partitionEnumerator.MoveNext())
             {
                 Partition mergedPartition = nextPartition.Merge(partitionEnumerator.Current, _field.Name, _lowerBound);
-                if (mergedPartition.DocumentCount > MaximumDocumentCount)
+                if (mergedPartition.DocumentCount > _partitionMaximumDocumentCount)
                 {
                     mergedPartitions.Add(nextPartition);
                     nextPartition = partitionEnumerator.Current;

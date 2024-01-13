@@ -29,13 +29,20 @@
             throw new InvalidOperationException($"Unexpected lower bound type {LowerBound.GetType()}, other lower bound type {other.LowerBound.GetType()}");
         }
 
-        public Partition Merge(Partition other, string field, object lowestBound) =>
-            new Partition
+        public Partition Merge(Partition other, string field, object lowestBound)
+        {
+            if (UpperBound != other.LowerBound)
+            {
+                throw new InvalidOperationException("Cannot merge partitions where upper bound does not match next lower bound");
+            }
+
+            return new Partition
             {
                 LowerBound = LowerBound,
-                UpperBound = other.LowerBound,
+                UpperBound = other.UpperBound,
                 DocumentCount = DocumentCount + other.DocumentCount,
                 Filter = Bound.GenerateBoundFilter(field, lowestBound, partitionLowerBound: LowerBound, partitionUpperBound: other.LowerBound)
             };
+        }
     }
 }
