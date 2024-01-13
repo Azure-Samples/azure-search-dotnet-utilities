@@ -11,7 +11,7 @@ namespace tests
     [TestClass]
     public class PartitionExporterTests
     {
-        private const string TestIndexName = "paritition-exporter-test";
+        private const string TestIndexName = "partition-exporter-test";
         private const int TestDocumentCount = 1000;
         private const int TestPartitionSize = 125;
         private static SearchIndexClient SearchIndexClient { get; set; }
