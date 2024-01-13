@@ -31,7 +31,7 @@ namespace export_data
             };
             var adminKeyOption = new Option<string>(
                 name: "--admin-key",
-                description: "Admin key to the search service to export data from. If not specified - uses your AAD identity")
+                description: "Admin key to the search service to export data from. If not specified - uses your Entra identity")
             {
                 IsRequired = false
             };
