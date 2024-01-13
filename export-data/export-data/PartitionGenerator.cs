@@ -1,7 +1,6 @@
 ﻿using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
-using System.Collections.Concurrent;
 
 namespace export_data
 {

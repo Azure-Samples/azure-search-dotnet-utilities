@@ -5,8 +5,6 @@ using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
 using export_data;
 using Microsoft.Extensions.Configuration;
-using System.Globalization;
-using System.Net;
 
 namespace tests
 {
