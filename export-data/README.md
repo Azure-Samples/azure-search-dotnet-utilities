@@ -62,8 +62,6 @@ You should use continuous export when:
 The `get-bounds` command is used to find the smallest and largest values of a sortable and filterable field in the index. This is used to determine how to split up the documents in the index into smaller partitions
 
 ```
-dotnet run get-bounds
-
 Description:
   Find and display the largest and lowest value for the specified field. Used to determine how to partition index data for export
 
@@ -71,8 +69,8 @@ Usage:
   export-data get-bounds [options]
 
 Options:
-  --endpoint <endpoint> (REQUIRED)      Endpoint of the search service to export data from
-  --admin-key <admin-key> (REQUIRED)    Admin key to the search service to export data from
+  --endpoint <endpoint> (REQUIRED)      Endpoint of the search service to export data from. Example: https://example.search.windows.net
+  --admin-key <admin-key>               Admin key to the search service to export data from. If not specified - uses your Entra identity
   --index-name <index-name> (REQUIRED)  Name of the index to export data from
   --field-name <field-name> (REQUIRED)  Name of field used to partition the index data. This field must be filterable and sortable.
   -?, -h, --help                        Show help and usage information
@@ -95,28 +93,20 @@ The `partition-index` command is used to divide the index into smaller partition
 
 ```
 Description:
-  Partitions the data in the index between the upper and lower bound values into partitions with at most 100,000
-  documents.
+  Partitions the data in the index between the upper and lower bound values into partitions with at most 100,000 documents.
 
 Usage:
   export-data partition-index [options]
 
 Options:
-  --endpoint <endpoint> (REQUIRED)      Endpoint of the search service to export data from. Example:
-                                        https://example.search.windows.net
-  --admin-key <admin-key>               Admin key to the search service to export data from. If not specified -
-                                        uses your Entra identity
+  --endpoint <endpoint> (REQUIRED)      Endpoint of the search service to export data from. Example: https://example.search.windows.net
+  --admin-key <admin-key>               Admin key to the search service to export data from. If not specified - uses your Entra identity
   --index-name <index-name> (REQUIRED)  Name of the index to export data from
-  --field-name <field-name> (REQUIRED)  Name of field used to partition the index data. This field must be
-                                        filterable and sortable.
-  --lower-bound <lower-bound>           Smallest value to use to partition the index data. Defaults to the smallest
-                                        value in the index. []
-  --upper-bound <upper-bound>           Largest value to use to partition the index data. Defaults to the largest
-                                        value in the index. []
-  --partition-size <partition-size>     Maximum size of a partition. Defaults to 100,000. Cannot exceed 100,000
-                                        [default: 100000]
-  --partition-path <partition-path>     Path of the file with JSON description of partitions. Should end in .json.
-                                        Default is <index name>-partitions.json []
+  --field-name <field-name> (REQUIRED)  Name of field used to partition the index data. This field must be filterable and sortable.
+  --lower-bound <lower-bound>           Smallest value to use to partition the index data. Defaults to the smallest value in the index. []
+  --upper-bound <upper-bound>           Largest value to use to partition the index data. Defaults to the largest value in the index. []
+  --partition-size <partition-size>     Maximum size of a partition. Defaults to 100,000. Cannot exceed 100,000 [default: 100000]
+  --partition-path <partition-path>     Path of the file with JSON description of partitions. Should end in .json. Default is <index name>-partitions.json []
   -?, -h, --help                        Show help and usage information
 ```
 
@@ -161,28 +151,15 @@ Usage:
   export-data export-partitions [options]
 
 Options:
-  --partition-path <partition-path> (REQUIRED)     Path of the file with JSON description of partitions. Should end
-                                                   in .json.
-  --admin-key <admin-key>                          Admin key to the search service to export data from. If not
-                                                   specified - uses your Entra identity
-  --export-path <export-path>                      Directory to write JSON Lines partition files to. Every line in
-                                                   the partition file contains a JSON object with the contents of
-                                                   the Search document. Format of file names is <index
-                                                   name>-<partition id>-documents.json [default: .]
-  --concurrent-partitions <concurrent-partitions>  Number of partitions to concurrently export. Default is 2
-                                                   [default: 2]
-  --page-size <page-size>                          Page size to use when running export queries. Default is 1000
-                                                   [default: 1000]
-  --include-partition <include-partition>          List of partitions by index to include in the export. Example:
-                                                   --include-partition 0 --include-partition 1 only runs the export
-                                                   on first 2 partitions []
-  --exclude-partition <exclude-partition>          List of partitions by index to exclude from the export. Example:
-                                                   --exclude-partition 0 --exclude-partition 1 runs the export on
-                                                   every partition except the first 2 []
-  --include-field <include-field>                  List of fields to include in the export. Example:
-                                                   --include-field field1 --include-field field2. []
-  --exclude-field <exclude-field>                  List of fields to exclude in the export. Example:
-                                                   --exclude-field field1 --exclude-field field2. []
+  --partition-path <partition-path> (REQUIRED)     Path of the file with JSON description of partitions. Should end in .json.
+  --admin-key <admin-key>                          Admin key to the search service to export data from. If not specified - uses your Entra identity
+  --export-path <export-path>                      Directory to write JSON Lines partition files to. Every line in the partition file contains a JSON object with the contents of the Search document. Format of file names is <index name>-<partition id>-documents.json [default: .]
+  --concurrent-partitions <concurrent-partitions>  Number of partitions to concurrently export. Default is 2 [default: 2]
+  --page-size <page-size>                          Page size to use when running export queries. Default is 1000 [default: 1000]
+  --include-partition <include-partition>          List of partitions by index to include in the export. Example: --include-partition 0 --include-partition 1 only runs the export on first 2 partitions []
+  --exclude-partition <exclude-partition>          List of partitions by index to exclude from the export. Example: --exclude-partition 0 --exclude-partition 1 runs the export on every partition except the first 2 []
+  --include-field <include-field>                  List of fields to include in the export. Example: --include-field field1 --include-field field2. []
+  --exclude-field <exclude-field>                  List of fields to exclude in the export. Example: --exclude-field field1 --exclude-field field2. []
   -?, -h, --help                                   Show help and usage information
 ```
 
@@ -228,30 +205,20 @@ The `export-continuous` command starts finding documents that have not been expo
 
 ```
 Description:
-  Exports data from a search service by adding a column to track which documents have been exported and continually
-  updating it
+  Exports data from a search service by adding a column to track which documents have been exported and continually updating it
 
 Usage:
   export-data export-continuous [options]
 
 Options:
-  --endpoint <endpoint> (REQUIRED)         Endpoint of the search service to export data from. Example:
-                                           https://example.search.windows.net
-  --admin-key <admin-key>                  Admin key to the search service to export data from. If not specified -
-                                           uses your Entra identity
+  --endpoint <endpoint> (REQUIRED)         Endpoint of the search service to export data from. Example: https://example.search.windows.net
+  --admin-key <admin-key>                  Admin key to the search service to export data from. If not specified - uses your Entra identity
   --index-name <index-name> (REQUIRED)     Name of the index to export data from
-  --export-field-name <export-field-name>  Name of the Edm.Boolean field the continuous export process will update
-                                           to track which documents have been exported. Default is 'exported'
-                                           [default: exported]
-  --page-size <page-size>                  Page size to use when running export queries. Default is 1000 [default:
-                                           1000]
-  --export-path <export-path>              Path to write JSON Lines file to. Every line in the file contains a JSON
-                                           object with the contents of the Search document. Format of file is
-                                           <index name>-documents.json []
-  --include-field <include-field>          List of fields to include in the export. Example: --include-field field1
-                                           --include-field field2. []
-  --exclude-field <exclude-field>          List of fields to exclude in the export. Example: --exclude-field field1
-                                           --exclude-field field2. []
+  --export-field-name <export-field-name>  Name of the Edm.Boolean field the continuous export process will update to track which documents have been exported. Default is 'exported' [default: exported]
+  --page-size <page-size>                  Page size to use when running export queries. Default is 1000 [default: 1000]
+  --export-path <export-path>              Path to write JSON Lines file to. Every line in the file contains a JSON object with the contents of the Search document. Format of file is <index name>-documents.json []
+  --include-field <include-field>          List of fields to include in the export. Example: --include-field field1 --include-field field2. []
+  --exclude-field <exclude-field>          List of fields to exclude in the export. Example: --exclude-field field1 --exclude-field field2. []
   -?, -h, --help                           Show help and usage information
 ```
 
