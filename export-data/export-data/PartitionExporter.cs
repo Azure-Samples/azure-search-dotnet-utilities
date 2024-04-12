@@ -18,7 +18,7 @@ namespace export_data
         private readonly int[] _partitionIdsToInclude;
         private readonly ISet<int> _partitionIdsToExclude;
 
-        public PartitionExporter(PartitionFile partitionFile, IPartitionWriter partitionWriter, SearchClient searchClient, SearchIndex index, int concurrentPartitions, int pageSize, int[] partitionIdsToInclude, ISet<int> partitionIdsToExclude, string[] fieldsToInclude, ISet<string> fieldsToExclude) : base(index, fieldsToInclude, fieldsToExclude)
+        public PartitionExporter(PartitionFile partitionFile, IPartitionWriter partitionWriter, SearchClient searchClient, SearchIndex index, int concurrentPartitions, int pageSize, int[] partitionIdsToInclude = null, ISet<int> partitionIdsToExclude = null, string[] fieldsToInclude = null, ISet<string> fieldsToExclude = null) : base(index, fieldsToInclude, fieldsToExclude)
         {
             _partitionFile = partitionFile;
             _partitionWriter = partitionWriter;
@@ -44,7 +44,8 @@ namespace export_data
             {
                 for (int id = 0; id < _partitionFile.Partitions.Count; id++)
                 {
-                    if (_partitionIdsToExclude != null && !_partitionIdsToExclude.Contains(id))
+                    if (_partitionIdsToExclude == null ||
+                        (_partitionIdsToExclude != null && !_partitionIdsToExclude.Contains(id)))
                     {
                         partitions.Enqueue(new PartitionToExport { Id = id, Partition = _partitionFile.Partitions[id] });
                     }
@@ -79,10 +80,13 @@ namespace export_data
 
         private async Task ExportPartitionAsync(int partitionId, Partition partition, CancellationToken cancellationToken)
         {
+            // Partitions being exported should have already been sub-partitioned into sizes less than 100k
+            // This check exists because DocumentCount on a partition can theoretically be larger than the int max size
+            int searchMaxSize = partition.DocumentCount > int.MaxValue ? int.MaxValue : (int)partition.DocumentCount;
             var options = new SearchOptions
             {
                 Filter = partition.Filter,
-                Size = _pageSize,
+                Size = searchMaxSize,
                 Skip = 0
             };
             AddSelect(options);

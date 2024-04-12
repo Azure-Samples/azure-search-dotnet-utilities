@@ -20,10 +20,10 @@ namespace tests
             _key = key;
         }
 
-        public async Task WritePartitionAsync(int partitionId, SearchResults<SearchDocument> searchResults, CancellationToken cancellationToken)
+        public async Task WritePartitionAsync(int partitionId, SearchResults<SearchDocument> searchResults, CancellationToken cancellationToken, int? pageSizeHint = null)
         {
             var partition = new Dictionary<string, SearchDocument>();
-            await foreach (Page<SearchResult<SearchDocument>> resultPage in searchResults.GetResultsAsync().AsPages())
+            await foreach (Page<SearchResult<SearchDocument>> resultPage in searchResults.GetResultsAsync().AsPages(pageSizeHint: pageSizeHint))
             {
                 foreach (SearchResult<SearchDocument> searchResult in resultPage.Values)
                 {

@@ -1,4 +1,6 @@
-﻿namespace export_data
+﻿using System.Text.Json;
+
+namespace export_data
 {
     /// <summary>
     /// Record of all partitions to be exported from a search index
@@ -19,5 +21,10 @@
 
         // List of all partitions. Sorted by lower bound.
         public List<Partition> Partitions { get; init; }
+
+        public void SerializeToFile(string path)
+        {
+            File.WriteAllText(path, JsonSerializer.Serialize(this, options: Util.SerializerOptions));
+        }
     }
 }
