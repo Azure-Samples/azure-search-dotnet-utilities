@@ -22,7 +22,7 @@ namespace export_data
             _indexName = indexName;
         }
 
-        public async Task WritePartitionAsync(int partitionId, SearchResults<SearchDocument> searchResults, CancellationToken cancellationToken)
+        public async Task WritePartitionAsync(int partitionId, SearchResults<SearchDocument> searchResults, CancellationToken cancellationToken, int? pageSizeHint = null)
         {
             if (!Directory.Exists(_directory))
             {
@@ -32,7 +32,7 @@ namespace export_data
             string exportPath = Path.Combine(_directory, $"{_indexName}-{partitionId}-documents.json");
             using FileStream exportOutput = File.Open(exportPath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
 
-            await foreach (Page<SearchResult<SearchDocument>> resultPage in searchResults.GetResultsAsync().AsPages())
+            await foreach (Page<SearchResult<SearchDocument>> resultPage in searchResults.GetResultsAsync().AsPages(pageSizeHint: pageSizeHint))
             {
                 foreach (SearchResult<SearchDocument> searchResult in resultPage.Values)
                 {

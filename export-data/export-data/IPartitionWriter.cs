@@ -9,6 +9,6 @@ namespace export_data
 {
     public interface IPartitionWriter
     {
-        public Task WritePartitionAsync(int partitionId, SearchResults<SearchDocument> searchResults, CancellationToken cancellationToken);
+        public Task WritePartitionAsync(int partitionId, SearchResults<SearchDocument> searchResults, CancellationToken cancellationToken, int? pageSizeHint = null);
     }
 }

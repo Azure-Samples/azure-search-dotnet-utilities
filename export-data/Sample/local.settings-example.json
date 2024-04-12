@@ -1,0 +1,6 @@
+{
+  "AZURE_SEARCH_SERVICE_ENDPOINT": "https://my-service-endpoint.search.windows.net",
+  "AZURE_SEARCH_INDEX_NAME": "my-admin-key",
+  "AZURE_SEARCH_ADMIN_KEY": "my-example-index-name",
+  "EXPORT_DIRECTORY":  "sample-export"
+}

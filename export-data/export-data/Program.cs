@@ -1,5 +1,4 @@
 ﻿using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.Text.Json;
 using Azure;
 using Azure.Identity;
@@ -178,7 +177,7 @@ namespace export_data
                     TotalDocumentCount = partitions.Sum(partition => partition.DocumentCount),
                     Partitions = partitions
                 };
-                File.WriteAllText(partitionFilePath, JsonSerializer.Serialize(output, options: Util.SerializerOptions));
+                output.SerializeToFile(partitionFilePath);
                 Console.WriteLine($"Wrote partitions to {partitionFilePath}");
             }, endpointOption, adminKeyOption, indexOption, fieldOption, lowerBoundOption, upperBoundOption, partitionSizeOption, partitionFileOption);
 
