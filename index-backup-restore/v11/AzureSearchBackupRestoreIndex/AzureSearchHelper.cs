@@ -18,54 +18,45 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace AzureSearchBackupRestore
+namespace AzureSearchBackupRestoreIndex;
+
+public class AzureSearchHelper
 {
-    public class AzureSearchHelper
+    // Azure AI Search requires that we use at least the API version "2024-03-01-Preview" to access all index features.
+    // Hence, this API version string is used for requests to Azure AI Search.
+    private const string ApiVersionString = "api-version=2024-03-01-Preview";
+
+    private static readonly JsonSerializerOptions _jsonOptions;
+
+    static AzureSearchHelper()
     {
-        public const string ApiVersionString = "api-version=2019-05-06";
+        _jsonOptions = new JsonSerializerOptions { };
 
-        private static readonly JsonSerializerOptions _jsonOptions;
+        _jsonOptions.Converters.Add(new JsonStringEnumConverter());
+    }
 
-        static AzureSearchHelper()
+    public static HttpResponseMessage SendSearchRequest(HttpClient client, HttpMethod method, Uri uri, string json = null)
+    {
+        UriBuilder builder = new UriBuilder(uri);
+        string separator = string.IsNullOrWhiteSpace(builder.Query) ? string.Empty : "&";
+        builder.Query = builder.Query.TrimStart('?') + separator + ApiVersionString;
+
+        var request = new HttpRequestMessage(method, builder.Uri);
+
+        if (json != null)
         {
-            _jsonOptions = new JsonSerializerOptions { };
-
-            _jsonOptions.Converters.Add(new JsonStringEnumConverter());
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
         }
 
-        public static string SerializeJson(object value)
+        return client.SendAsync(request).Result;
+    }
+
+    public static void EnsureSuccessfulSearchResponse(HttpResponseMessage response)
+    {
+        if (!response.IsSuccessStatusCode)
         {
-            return JsonSerializer.Serialize(value, _jsonOptions);
-        }
-
-        public static T DeserializeJson<T>(string json)
-        {
-            return JsonSerializer.Deserialize<T>(json, _jsonOptions);
-        }
-
-        public static HttpResponseMessage SendSearchRequest(HttpClient client, HttpMethod method, Uri uri, string json = null)
-        {
-            UriBuilder builder = new UriBuilder(uri);
-            string separator = string.IsNullOrWhiteSpace(builder.Query) ? string.Empty : "&";
-            builder.Query = builder.Query.TrimStart('?') + separator + ApiVersionString;
-
-            var request = new HttpRequestMessage(method, builder.Uri);
-
-            if (json != null)
-            {
-                request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-            }
-
-            return client.SendAsync(request).Result;
-        }
-
-        public static void EnsureSuccessfulSearchResponse(HttpResponseMessage response)
-        {
-            if (!response.IsSuccessStatusCode)
-            {
-                string error = response.Content == null ? null : response.Content.ReadAsStringAsync().Result;
-                throw new Exception("Search request failed: " + error);
-            }
+            string error = response.Content?.ReadAsStringAsync().Result;
+            throw new Exception("Search request failed: " + error);
         }
     }
 }
