@@ -1,11 +1,6 @@
 ﻿// This is a prototype tool that allows for extraction of data from a search index
 // Since this tool is still under development, it should not be used for production usage
 
-using Azure;
-using Azure.Search.Documents;
-using Azure.Search.Documents.Indexes;
-using Azure.Search.Documents.Models;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,9 +9,13 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using AzureSearchBackupRestoreIndex;
+using Azure;
+using Azure.Search.Documents;
+using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Models;
+using Microsoft.Extensions.Configuration;
 
-namespace AzureSearchBackupRestore;
+namespace AzureSearchBackupRestoreIndex;
 
 class Program
 {
