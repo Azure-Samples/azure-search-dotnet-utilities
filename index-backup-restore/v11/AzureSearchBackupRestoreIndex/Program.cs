@@ -20,7 +20,6 @@ namespace AzureSearchBackupRestore;
 
 class Program
 {
-
     private static string SourceSearchServiceName;
     private static string SourceAdminKey;
     private static string SourceIndexName;
@@ -37,9 +36,8 @@ class Program
     private static int MaxBatchSize = 500;          // JSON files will contain this many documents / file and can be up to 1000
     private static int ParallelizedJobs = 10;       // Output content in parallel jobs
 
-    static void Main(string[] args)
+    static void Main()
     {
-
         //Get source and target search service info and index names from appsettings.json file
         //Set up source and target search service clients
         ConfigurationSetup();
@@ -111,7 +109,6 @@ class Program
     static void WriteIndexDocuments(int CurrentDocCount)
     {
         // Write document files in batches (per MaxBatchSize) in parallel
-        string IDFieldName = GetIDFieldName();
         int FileCounter = 0;
         for (int batch = 0; batch <= (CurrentDocCount / MaxBatchSize); batch += ParallelizedJobs)
         {
@@ -126,7 +123,7 @@ class Program
                     Console.WriteLine("Backing up source documents to {0} - (batch size = {1})", Path.Combine(BackupDirectory, $"{SourceIndexName}{fileCounter}.json"), MaxBatchSize);
 
                     tasks.Add(Task.Factory.StartNew(() =>
-                        ExportToJSON((fileCounter - 1) * MaxBatchSize, IDFieldName, Path.Combine(BackupDirectory, $"{SourceIndexName}{fileCounter}.json"))
+                        ExportToJSON((fileCounter - 1) * MaxBatchSize,Path.Combine(BackupDirectory, $"{SourceIndexName}{fileCounter}.json"))
                     ));
                 }
 
@@ -137,7 +134,7 @@ class Program
         return;
     }
 
-    static void ExportToJSON(int Skip, string IDFieldName, string FileName)
+    static void ExportToJSON(int Skip, string FileName)
     {
         // Extract all the documents from the selected index to JSON files in batches of 500 docs / file
         string json = string.Empty;
@@ -171,7 +168,7 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error: {0}", ex.Message.ToString());
+            Console.WriteLine("Error: {0}", ex.Message);
         }
     }
 
@@ -194,7 +191,7 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error: {0}", ex.Message.ToString());
+            Console.WriteLine("Error: {0}", ex.Message);
         }
 
         return IDFieldName;
@@ -202,7 +199,6 @@ class Program
 
     static string GetIndexSchema()
     {
-
         // Extract the schema for this index
         // We use REST here because we can take the response as-is
 
@@ -216,11 +212,11 @@ class Program
             Uri uri = new Uri(ServiceUri, "/indexes/" + SourceIndexName);
             HttpResponseMessage response = AzureSearchHelper.SendSearchRequest(HttpClient, HttpMethod.Get, uri);
             AzureSearchHelper.EnsureSuccessfulSearchResponse(response);
-            Schema = response.Content.ReadAsStringAsync().Result.ToString();
+            Schema = response.Content.ReadAsStringAsync().Result;
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error: {0}", ex.Message.ToString());
+            Console.WriteLine("Error: {0}", ex.Message);
         }
 
         return Schema;
@@ -270,7 +266,7 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("  Error: {0}", ex.Message.ToString());
+            Console.WriteLine("  Error: {0}", ex.Message);
         }
     }
 
@@ -279,7 +275,7 @@ class Program
         // Get the current doc count of the specified index
         try
         {
-            SearchOptions options = new SearchOptions()
+            SearchOptions options = new SearchOptions
             {
                 SearchMode = SearchMode.All,
                 IncludeTotalCount = true
@@ -290,7 +286,7 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("  Error: {0}", ex.Message.ToString());
+            Console.WriteLine("  Error: {0}", ex.Message);
         }
 
         return -1;
@@ -317,7 +313,7 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("  Error: {0}", ex.Message.ToString());
+            Console.WriteLine("  Error: {0}", ex.Message);
         }
     }
 }
