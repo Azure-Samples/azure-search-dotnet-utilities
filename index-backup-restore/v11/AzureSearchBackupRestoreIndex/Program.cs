@@ -86,6 +86,9 @@ namespace AzureSearchBackupRestore
             Console.WriteLine("\n  Target service and index: {0}, {1}", TargetSearchServiceName, TargetIndexName);
             Console.WriteLine("\n  Backup directory: " + BackupDirectory);
 
+            Console.WriteLine("\nDoes this look correct? Press any key to continue, Ctrl+C to cancel...");
+            Console.ReadLine();
+
             SourceIndexClient = new SearchIndexClient(new Uri("https://" + SourceSearchServiceName + ".search.windows.net"), new AzureKeyCredential(SourceAdminKey));
             SourceSearchClient = SourceIndexClient.GetSearchClient(SourceIndexName);
 
@@ -97,11 +100,12 @@ namespace AzureSearchBackupRestore
         static void BackupIndexAndDocuments()
         {
             // Backup the index schema to the specified backup directory
-            Console.WriteLine("\n  Backing up source index schema to {0}\r\n", BackupDirectory + "\\" + SourceIndexName + ".schema");
+            var schema_json_path = Path.Combine(BackupDirectory, SourceIndexName + ".schema");
+            Console.WriteLine("\n  Backing up source index schema to {0}\r\n", schema_json_path);
 
-            File.WriteAllText(BackupDirectory + "\\" + SourceIndexName + ".schema", GetIndexSchema());
+            File.WriteAllText(schema_json_path, GetIndexSchema());
 
-            // Extract the content to JSON files 
+            // Extract the content to JSON files
             int SourceDocCount = GetCurrentDocCount(SourceSearchClient);
             WriteIndexDocuments(SourceDocCount);     // Output content from index to json files
         }
@@ -121,10 +125,11 @@ namespace AzureSearchBackupRestore
                     int fileCounter = FileCounter;
                     if ((fileCounter - 1) * MaxBatchSize < CurrentDocCount)
                     {
-                        Console.WriteLine("  Backing up source documents to {0} - (batch size = {1})", BackupDirectory + "\\" + SourceIndexName + fileCounter + ".json", MaxBatchSize);
+                        var index_json_path = Path.Combine(BackupDirectory, SourceIndexName + fileCounter + ".json");
+                        Console.WriteLine("  Backing up source documents to {0} - (batch size = {1})", index_json_path, MaxBatchSize);
 
                         tasks.Add(Task.Factory.StartNew(() =>
-                            ExportToJSON((fileCounter - 1) * MaxBatchSize, IDFieldName, BackupDirectory + "\\" + SourceIndexName + fileCounter + ".json")
+                            ExportToJSON((fileCounter - 1) * MaxBatchSize, IDFieldName, index_json_path)
                         ));
                     }
 
@@ -248,7 +253,7 @@ namespace AzureSearchBackupRestore
             // Use the schema file to create a copy of this index
             // I like using REST here since I can just take the response as-is
 
-            string json = File.ReadAllText(BackupDirectory + "\\" + SourceIndexName + ".schema");
+            string json = File.ReadAllText(Path.Combine(BackupDirectory, SourceIndexName + ".schema"));
 
             // Do some cleaning of this file to change index name, etc
             json = "{" + json.Substring(json.IndexOf("\"name\""));
