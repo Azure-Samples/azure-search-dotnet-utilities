@@ -23,7 +23,8 @@ namespace AzureSearchBackupRestore
 {
     public class AzureSearchHelper
     {
-        public const string ApiVersionString = "api-version=2019-05-06";
+        // Available versions: https://learn.microsoft.com/en-us/rest/api/searchservice/search-service-api-versions
+        public const string ApiVersionString = "api-version=2024-03-01-Preview";
 
         private static readonly JsonSerializerSettings _jsonSettings;
 

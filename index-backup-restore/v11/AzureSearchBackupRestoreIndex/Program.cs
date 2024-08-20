@@ -83,6 +83,8 @@ class Program
         Console.WriteLine("\n  Source service and index {0}, {1}", SourceSearchServiceName, SourceIndexName);
         Console.WriteLine("\n  Target service and index: {0}, {1}", TargetSearchServiceName, TargetIndexName);
         Console.WriteLine("\n  Backup directory: " + BackupDirectory);
+        Console.WriteLine("\nDoes this look correct? Press any key to continue, Ctrl+C to cancel.");
+        Console.ReadLine();
 
         SourceIndexClient = new SearchIndexClient(new Uri("https://" + SourceSearchServiceName + ".search.windows.net"), new AzureKeyCredential(SourceAdminKey));
         SourceSearchClient = SourceIndexClient.GetSearchClient(SourceIndexName);
@@ -95,12 +97,11 @@ class Program
     static void BackupIndexAndDocuments()
     {
         // Backup the index schema to the specified backup directory
-        Console.WriteLine("\n  Backing up source index schema to {0}\r\n", BackupDirectory + "\\" + SourceIndexName + ".schema");
+        Console.WriteLine("\n Backing up source index schema to {0}\n", Path.Combine(BackupDirectory, SourceIndexName + ".schema"));
 
-            
-        File.WriteAllText(Path.Combine(BackupDirectory, $"{SourceIndexName}.schema"), GetIndexSchema());
+        File.WriteAllText(Path.Combine(BackupDirectory, SourceIndexName + ".schema"), GetIndexSchema());
 
-        // Extract the content to JSON files 
+        // Extract the content to JSON files
         int SourceDocCount = GetCurrentDocCount(SourceSearchClient);
         WriteIndexDocuments(SourceDocCount);     // Output content from index to json files
     }
@@ -119,10 +120,10 @@ class Program
                 int fileCounter = FileCounter;
                 if ((fileCounter - 1) * MaxBatchSize < CurrentDocCount)
                 {
-                    Console.WriteLine("Backing up source documents to {0} - (batch size = {1})", Path.Combine(BackupDirectory, $"{SourceIndexName}{fileCounter}.json"), MaxBatchSize);
+                    Console.WriteLine(" Backing up source documents to {0} - (batch size = {1})", Path.Combine(BackupDirectory, SourceIndexName + fileCounter + ".json"), MaxBatchSize);
 
                     tasks.Add(Task.Factory.StartNew(() =>
-                        ExportToJSON((fileCounter - 1) * MaxBatchSize,Path.Combine(BackupDirectory, $"{SourceIndexName}{fileCounter}.json"))
+                        ExportToJSON((fileCounter - 1) * MaxBatchSize, Path.Combine(BackupDirectory, $"{SourceIndexName}{fileCounter}.json"))
                     ));
                 }
 
@@ -245,7 +246,7 @@ class Program
         // Use the schema file to create a copy of this index
         // I like using REST here since I can just take the response as-is
 
-        string json = File.ReadAllText(Path.Combine(BackupDirectory, $"{SourceIndexName}.schema"));
+        string json = File.ReadAllText(Path.Combine(BackupDirectory, SourceIndexName + ".schema"));
 
         // Do some cleaning of this file to change index name, etc
         json = "{" + json.Substring(json.IndexOf("\"name\""));
