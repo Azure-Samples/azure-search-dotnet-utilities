@@ -33,7 +33,7 @@ class Program
     private static SearchClient TargetSearchClient;
 
     private static int MaxBatchSize = 500;          // JSON files will contain this many documents / file and can be up to 1000
-    private static int ParallelizedJobs = 5;       // Output content in parallel jobs
+    private static int ParallelizedJobs = 10;       // Output content in parallel jobs
 
     static void Main()
     {
@@ -42,13 +42,13 @@ class Program
         ConfigurationSetup();
 
         //Backup the source index
-        //Console.WriteLine("\nSTART INDEX BACKUP");
-        //BackupIndexAndDocuments();
+        Console.WriteLine("\nSTART INDEX BACKUP");
+        BackupIndexAndDocuments();
 
         //Recreate and import content to target index
         Console.WriteLine("\nSTART INDEX RESTORE");
-        //DeleteIndex();
-        //CreateTargetIndex();
+        DeleteIndex();
+        CreateTargetIndex();
         ImportFromJSON();
         Console.WriteLine("\r\n  Waiting 10 seconds for target to index content...");
         Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\r\n");
