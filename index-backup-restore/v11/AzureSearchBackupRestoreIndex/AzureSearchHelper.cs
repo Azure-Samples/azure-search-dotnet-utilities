@@ -35,7 +35,7 @@ public class AzureSearchHelper
     private static readonly AsyncRetryPolicy<HttpResponseMessage> RetryPolicy = Policy
             .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode) 
             .Or<Exception>()
-            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)));
+            .WaitAndRetryAsync(4, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
     static AzureSearchHelper()
     {
