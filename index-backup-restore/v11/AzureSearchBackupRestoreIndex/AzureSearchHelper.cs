@@ -17,6 +17,8 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Polly;
+using Polly.Retry;
 
 namespace AzureSearchBackupRestoreIndex;
 
@@ -26,13 +28,20 @@ public class AzureSearchHelper
     // Hence, this API version string is used for requests to Azure AI Search.
     private const string ApiVersionString = "api-version=2024-03-01-Preview";
 
-    private static readonly JsonSerializerOptions _jsonOptions;
+    private static readonly JsonSerializerOptions JsonOptions;
+    
+    // Retry policy to improve document migration resilience
+    // AI Search may fail to process large batches
+    private static readonly AsyncRetryPolicy<HttpResponseMessage> RetryPolicy = Policy
+            .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode) 
+            .Or<Exception>()
+            .WaitAndRetryAsync(4, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
     static AzureSearchHelper()
     {
-        _jsonOptions = new JsonSerializerOptions { };
+        JsonOptions = new JsonSerializerOptions { };
 
-        _jsonOptions.Converters.Add(new JsonStringEnumConverter());
+        JsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
     public static HttpResponseMessage SendSearchRequest(HttpClient client, HttpMethod method, Uri uri, string json = null)
@@ -40,15 +49,20 @@ public class AzureSearchHelper
         UriBuilder builder = new UriBuilder(uri);
         string separator = string.IsNullOrWhiteSpace(builder.Query) ? string.Empty : "&";
         builder.Query = builder.Query.TrimStart('?') + separator + ApiVersionString;
-
-        var request = new HttpRequestMessage(method, builder.Uri);
-
-        if (json != null)
+        
+        HttpResponseMessage response = RetryPolicy.ExecuteAsync(async () =>
         {
-            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-        }
+            var request = new HttpRequestMessage(method, builder.Uri);
 
-        return client.SendAsync(request).Result;
+            if (json != null)
+            {
+                request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            }
+
+            return await client.SendAsync(request);
+        }).GetAwaiter().GetResult();
+
+        return response;
     }
 
     public static void EnsureSuccessfulSearchResponse(HttpResponseMessage response)
