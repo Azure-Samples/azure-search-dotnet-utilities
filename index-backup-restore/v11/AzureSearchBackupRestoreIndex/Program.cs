@@ -50,8 +50,8 @@ class Program
         DeleteIndex();
         CreateTargetIndex();
         ImportFromJSON();
-        Console.WriteLine("\r\n  Waiting 10 seconds for target to index content...");
-        Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\r\n");
+        Console.WriteLine("\n  Waiting 10 seconds for target to index content...");
+        Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\n");
         Thread.Sleep(10000);
 
         // Validate all content is in target index
@@ -59,7 +59,7 @@ class Program
         int targetCount = GetCurrentDocCount(TargetSearchClient);
         Console.WriteLine("\nSAFEGUARD CHECK: Source and target index counts should match");
         Console.WriteLine(" Source index contains {0} docs", sourceCount);
-        Console.WriteLine(" Target index contains {0} docs\r\n", targetCount);
+        Console.WriteLine(" Target index contains {0} docs\n", targetCount);
 
         Console.WriteLine("Press any key to continue...");
         Console.ReadLine();
@@ -83,6 +83,8 @@ class Program
         Console.WriteLine("\n  Source service and index {0}, {1}", SourceSearchServiceName, SourceIndexName);
         Console.WriteLine("\n  Target service and index: {0}, {1}", TargetSearchServiceName, TargetIndexName);
         Console.WriteLine("\n  Backup directory: " + BackupDirectory);
+        Console.WriteLine("\nDoes this look correct? Press any key to continue, Ctrl+C to cancel.");
+        Console.ReadLine();
 
         SourceIndexClient = new SearchIndexClient(new Uri("https://" + SourceSearchServiceName + ".search.windows.net"), new AzureKeyCredential(SourceAdminKey));
         SourceSearchClient = SourceIndexClient.GetSearchClient(SourceIndexName);
@@ -95,12 +97,11 @@ class Program
     static void BackupIndexAndDocuments()
     {
         // Backup the index schema to the specified backup directory
-        Console.WriteLine("\n  Backing up source index schema to {0}\r\n", BackupDirectory + "\\" + SourceIndexName + ".schema");
+        Console.WriteLine("\n Backing up source index schema to {0}\n", Path.Combine(BackupDirectory, SourceIndexName + ".schema"));
 
-            
-        File.WriteAllText(Path.Combine(BackupDirectory, $"{SourceIndexName}.schema"), GetIndexSchema());
+        File.WriteAllText(Path.Combine(BackupDirectory, SourceIndexName + ".schema"), GetIndexSchema());
 
-        // Extract the content to JSON files 
+        // Extract the content to JSON files
         int SourceDocCount = GetCurrentDocCount(SourceSearchClient);
         WriteIndexDocuments(SourceDocCount);     // Output content from index to json files
     }
@@ -119,10 +120,10 @@ class Program
                 int fileCounter = FileCounter;
                 if ((fileCounter - 1) * MaxBatchSize < CurrentDocCount)
                 {
-                    Console.WriteLine("Backing up source documents to {0} - (batch size = {1})", Path.Combine(BackupDirectory, $"{SourceIndexName}{fileCounter}.json"), MaxBatchSize);
+                    Console.WriteLine(" Backing up source documents to {0} - (batch size = {1})", Path.Combine(BackupDirectory, SourceIndexName + fileCounter + ".json"), MaxBatchSize);
 
                     tasks.Add(Task.Factory.StartNew(() =>
-                        ExportToJSON((fileCounter - 1) * MaxBatchSize,Path.Combine(BackupDirectory, $"{SourceIndexName}{fileCounter}.json"))
+                        ExportToJSON((fileCounter - 1) * MaxBatchSize, Path.Combine(BackupDirectory, $"{SourceIndexName}{fileCounter}.json"))
                     ));
                 }
 
@@ -154,7 +155,7 @@ class Program
                 json = json.Replace("\"Latitude\":", "\"type\": \"Point\", \"coordinates\": [");
                 json = json.Replace("\"Longitude\":", "");
                 json = json.Replace(",\"IsEmpty\":false,\"Z\":null,\"M\":null,\"CoordinateSystem\":{\"EpsgId\":4326,\"Id\":\"4326\",\"Name\":\"WGS84\"}", "]");
-                json += "\r\n";
+                json += "\n";
             }
 
             // Output the formatted content to a file
@@ -231,8 +232,8 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("  Error deleting index: {0}\r\n", ex.Message);
-            Console.WriteLine("  Did you remember to set your SearchServiceName and SearchServiceApiKey?\r\n");
+            Console.WriteLine("  Error deleting index: {0}\n", ex.Message);
+            Console.WriteLine("  Did you remember to set your SearchServiceName and SearchServiceApiKey?\n");
             return false;
         }
 
@@ -245,7 +246,7 @@ class Program
         // Use the schema file to create a copy of this index
         // I like using REST here since I can just take the response as-is
 
-        string json = File.ReadAllText(Path.Combine(BackupDirectory, $"{SourceIndexName}.schema"));
+        string json = File.ReadAllText(Path.Combine(BackupDirectory, SourceIndexName + ".schema"));
 
         // Do some cleaning of this file to change index name, etc
         json = "{" + json.Substring(json.IndexOf("\"name\""));

@@ -29,11 +29,11 @@ public class AzureSearchHelper
     private const string ApiVersionString = "api-version=2024-03-01-Preview";
 
     private static readonly JsonSerializerOptions JsonOptions;
-    
+
     // Retry policy to improve document migration resilience
     // AI Search may fail to process large batches
     private static readonly AsyncRetryPolicy<HttpResponseMessage> RetryPolicy = Policy
-            .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode) 
+            .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
             .Or<Exception>()
             .WaitAndRetryAsync(4, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
@@ -49,7 +49,7 @@ public class AzureSearchHelper
         UriBuilder builder = new UriBuilder(uri);
         string separator = string.IsNullOrWhiteSpace(builder.Query) ? string.Empty : "&";
         builder.Query = builder.Query.TrimStart('?') + separator + ApiVersionString;
-        
+
         HttpResponseMessage response = RetryPolicy.ExecuteAsync(async () =>
         {
             var request = new HttpRequestMessage(method, builder.Uri);

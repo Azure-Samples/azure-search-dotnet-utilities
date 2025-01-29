@@ -50,8 +50,8 @@ namespace AzureSearchBackupRestore
             DeleteIndex();
             CreateTargetIndex();
             ImportFromJSON();
-            Console.WriteLine("\r\n  Waiting 10 seconds for target to index content...");
-            Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\r\n");
+            Console.WriteLine("\n  Waiting 10 seconds for target to index content...");
+            Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\n");
             Thread.Sleep(10000);
 
             // Validate all content is in target index
@@ -59,7 +59,7 @@ namespace AzureSearchBackupRestore
             int targetCount = GetCurrentDocCount(TargetIndexClient);
             Console.WriteLine("\nSAFEGUARD CHECK: Source and target index counts should match");
             Console.WriteLine(" Source index contains {0} docs", sourceCount);
-            Console.WriteLine(" Target index contains {0} docs\r\n", targetCount);
+            Console.WriteLine(" Target index contains {0} docs\n", targetCount);
 
             Console.WriteLine("Press any key to continue...");
             Console.ReadLine();
@@ -84,6 +84,9 @@ namespace AzureSearchBackupRestore
             Console.WriteLine("\n  Target service and index: {0}, {1}", TargetSearchServiceName, TargetIndexName);
             Console.WriteLine("\n  Backup directory: " + BackupDirectory);
 
+            Console.WriteLine("\nDoes this look correct? Press any key to continue, Ctrl+C to cancel.");
+            Console.ReadLine();
+
             SourceSearchClient = new SearchServiceClient(SourceSearchServiceName, new SearchCredentials(SourceAdminKey));
             SourceIndexClient = SourceSearchClient.Indexes.GetClient(SourceIndexName);
 
@@ -95,16 +98,16 @@ namespace AzureSearchBackupRestore
         static void BackupIndexAndDocuments()
         {
             // Backup the index schema to the specified backup directory
-            Console.WriteLine("\n  Backing up source index schema to {0}\r\n", BackupDirectory + SourceIndexName + ".schema");
+            Console.WriteLine("\n  Backing up source index schema to {0}\n", Path.Combine(BackupDirectory, SourceIndexName + ".schema"));
 
-            File.WriteAllText(BackupDirectory + SourceIndexName + ".schema", GetIndexSchema());
+            File.WriteAllText(Path.Combine(BackupDirectory, SourceIndexName + ".schema"), GetIndexSchema());
 
-            // Extract the content to JSON files 
+            // Extract the content to JSON files
             int SourceDocCount = GetCurrentDocCount(SourceIndexClient);
             WriteIndexDocuments(SourceDocCount);     // Output content from index to json files
 
         }
-    
+
         static void WriteIndexDocuments(int CurrentDocCount)
         {
             // Write document files in batches (per MaxBatchSize) in parallel
@@ -120,10 +123,10 @@ namespace AzureSearchBackupRestore
                     int fileCounter = FileCounter;
                     if ((fileCounter - 1) * MaxBatchSize < CurrentDocCount)
                     {
-                        Console.WriteLine("  Backing up source documents to {0} - (batch size = {1})", BackupDirectory + SourceIndexName + fileCounter + ".json", MaxBatchSize);
+                        Console.WriteLine("  Backing up source documents to {0} - (batch size = {1})", Path.Combine(BackupDirectory, SourceIndexName + fileCounter + ".json"), MaxBatchSize);
 
                         tasks.Add(Task.Factory.StartNew(() =>
-                            ExportToJSON((fileCounter - 1) * MaxBatchSize, IDFieldName, BackupDirectory + SourceIndexName + fileCounter + ".json")
+                            ExportToJSON((fileCounter - 1) * MaxBatchSize, IDFieldName, Path.Combine(BackupDirectory, SourceIndexName + fileCounter + ".json"))
                         ));
                     }
 
@@ -180,11 +183,11 @@ namespace AzureSearchBackupRestore
                     json = json.Replace("\"Latitude\":", "\"type\": \"Point\", \"coordinates\": [");
                     json = json.Replace("\"Longitude\":", "");
                     json = json.Replace(",\"IsEmpty\":false,\"Z\":null,\"M\":null,\"CoordinateSystem\":{\"EpsgId\":4326,\"Id\":\"4326\",\"Name\":\"WGS84\"}", "]");
-                    json += "\r\n";
+                    json += "\n";
 
                     //{ "type": "Point", "coordinates": [-122.131577, 47.678581] }
                     //{"Latitude":41.113,"Longitude":-95.6269}
-                    //json += "\r\n";
+                    //json += "\n";
 
                 }
 
@@ -214,7 +217,7 @@ namespace AzureSearchBackupRestore
                 var schema = SourceSearchClient.Indexes.Get(SourceIndexName);
                 foreach (var field in schema.Fields)
                 {
-                    if (field.IsKey== true)
+                    if (field.IsKey == true)
                     {
                         IDFieldName = Convert.ToString(field.Name);
                         break;
@@ -258,7 +261,7 @@ namespace AzureSearchBackupRestore
 
         private static bool DeleteIndex()
         {
-            Console.WriteLine("\n  Delete target index {0} in {1} search service, if it exists", TargetIndexName,TargetSearchServiceName);
+            Console.WriteLine("\n  Delete target index {0} in {1} search service, if it exists", TargetIndexName, TargetSearchServiceName);
             // Delete the index if it exists
             try
             {
@@ -266,8 +269,8 @@ namespace AzureSearchBackupRestore
             }
             catch (Exception ex)
             {
-                Console.WriteLine("  Error deleting index: {0}\r\n", ex.Message);
-                Console.WriteLine("  Did you remember to set your SearchServiceName and SearchServiceApiKey?\r\n");
+                Console.WriteLine("  Error deleting index: {0}\n", ex.Message);
+                Console.WriteLine("  Did you remember to set your SearchServiceName and SearchServiceApiKey?\n");
                 return false;
             }
 
@@ -281,7 +284,7 @@ namespace AzureSearchBackupRestore
             // I like using REST here since I can just take the response as-is
 
 
-            string json = File.ReadAllText(BackupDirectory + SourceIndexName + ".schema");
+            string json = File.ReadAllText(Path.Combine(BackupDirectory, SourceIndexName + ".schema"));
 
 
             // Do some cleaning of this file to change index name, etc
@@ -308,7 +311,7 @@ namespace AzureSearchBackupRestore
         }
         static int GetCurrentDocCount(ISearchIndexClient IndexClient)
         {
- 
+
             // Get the current doc count of the specified index
             try
             {
@@ -318,7 +321,7 @@ namespace AzureSearchBackupRestore
                     IncludeTotalResultCount = true
                 };
 
-                DocumentSearchResult <Document> response = IndexClient.Documents.Search("*", sp);
+                DocumentSearchResult<Document> response = IndexClient.Documents.Search("*", sp);
                 return Convert.ToInt32(response.Count);
 
             }
