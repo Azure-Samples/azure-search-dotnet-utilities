@@ -50,8 +50,8 @@ class Program
         DeleteIndex();
         CreateTargetIndex();
         ImportFromJSON();
-        Console.WriteLine("\r\n  Waiting 10 seconds for target to index content...");
-        Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\r\n");
+        Console.WriteLine("\n  Waiting 10 seconds for target to index content...");
+        Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\n");
         Thread.Sleep(10000);
 
         // Validate all content is in target index
@@ -59,7 +59,7 @@ class Program
         int targetCount = GetCurrentDocCount(TargetSearchClient);
         Console.WriteLine("\nSAFEGUARD CHECK: Source and target index counts should match");
         Console.WriteLine(" Source index contains {0} docs", sourceCount);
-        Console.WriteLine(" Target index contains {0} docs\r\n", targetCount);
+        Console.WriteLine(" Target index contains {0} docs\n", targetCount);
 
         Console.WriteLine("Press any key to continue...");
         Console.ReadLine();
@@ -155,7 +155,7 @@ class Program
                 json = json.Replace("\"Latitude\":", "\"type\": \"Point\", \"coordinates\": [");
                 json = json.Replace("\"Longitude\":", "");
                 json = json.Replace(",\"IsEmpty\":false,\"Z\":null,\"M\":null,\"CoordinateSystem\":{\"EpsgId\":4326,\"Id\":\"4326\",\"Name\":\"WGS84\"}", "]");
-                json += "\r\n";
+                json += "\n";
             }
 
             // Output the formatted content to a file
@@ -232,8 +232,8 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("  Error deleting index: {0}\r\n", ex.Message);
-            Console.WriteLine("  Did you remember to set your SearchServiceName and SearchServiceApiKey?\r\n");
+            Console.WriteLine("  Error deleting index: {0}\n", ex.Message);
+            Console.WriteLine("  Did you remember to set your SearchServiceName and SearchServiceApiKey?\n");
             return false;
         }
 
