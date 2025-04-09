@@ -18,7 +18,7 @@ urlFragment: azure-search-backup-restore-index
 
 This application copies an index from one service to another, creating JSON files on your computer with the index schema and documents. This tool is useful if you've been using the Free pricing tier to develop your index and want to move to the Basic or higher tier for production use. It's also useful if you want to back up your index to your computer and restore the index at a later time.
 
-> **Note**: Azure AI Search now supports [service upgrades](https://learn.microsoft.com/en-us/azure/search/search-how-to-upgrade) and [pricing tier changes](https://learn.microsoft.com/en-us/azure/search/search-capacity-planning#change-your-pricing-tier). If you're backing up and restoring your index for migration to a higher capacity service, you now have other options.
+> **Note**: Azure AI Search now supports [service upgrades](https://learn.microsoft.com/azure/search/search-how-to-upgrade) and [pricing tier changes](https://learn.microsoft.com/azure/search/search-capacity-planning#change-your-pricing-tier). If you're backing up and restoring your index for migration to a higher capacity service, you now have other options.
 
 ## IMPORTANT - PLEASE READ
 
