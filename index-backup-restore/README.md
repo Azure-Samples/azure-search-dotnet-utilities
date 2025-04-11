@@ -3,8 +3,7 @@ page_type: sample
 languages:
   - csharp
 name: Back up and restore an Azure AI Search index
-description: "This application backs up a 'source' index schema and its documents to a JSON files on your computer, and then uses those files to recreate a 'target' index copy in the 'target' search service that you specify. Depending on your needs, you can use all or part of this application to backup your index files and/or move an index from one search service to another.
-For example, you may use the Basic or Free pricing tier to develop your index, and then want to move it to the Standard or higher tier for production use."
+description: "This application backs up a 'source' index schema and its documents to JSON files on your computer, and then uses those files to recreate a 'target' index copy in the 'target' search service that you specify. Depending on your needs, you can use all or part of this application to backup your index files and/or move an index from one search service to another."
 products:
   - azure
   - azure-cognitive-search
@@ -15,7 +14,11 @@ urlFragment: azure-search-backup-restore-index
 
 ![MIT license badge](https://img.shields.io/badge/license-MIT-green.svg)
 
-This application copies an index from one service to another, and in the process, creates JSON files on your computer with the index schema and documents. This tool is useful when you have been using a Basic or Free pricing tier to develop your index, and then want to move it to the Standard or higher tier for production use. It is also useful if you want to back up your index to your computer and restore the index at a later time.
+**This unofficial code sample is offered \"as-is\" and might not work for all customers and scenarios. If you run into difficulties, you should manually recreate and reload your search index on a new search service.**
+
+This application copies an index from one service to another, creating JSON files on your computer with the index schema and documents. This tool is useful if you've been using the Free pricing tier to develop your index and want to move to the Basic or higher tier for production use. It's also useful if you want to back up your index to your computer and restore the index at a later time.
+
+> **Note**: Azure AI Search now supports [service upgrades](https://learn.microsoft.com/azure/search/search-how-to-upgrade) and [pricing tier changes](https://learn.microsoft.com/azure/search/search-capacity-planning#change-your-pricing-tier). If you're backing up and restoring your index for migration to a higher capacity service, you now have other options.
 
 ## IMPORTANT - PLEASE READ
 
