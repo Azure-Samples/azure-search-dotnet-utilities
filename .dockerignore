@@ -1,0 +1,19 @@
+# Ignore version control
+.git
+.gitignore
+
+# Ignore build outputs
+bin/
+obj/
+out/
+
+# Ignore user-specific files
+*.user
+*.vs
+*.swp
+
+# Ignore temporary files
+*.tmp
+*.log
+*.sock
+tmp/dotnet-diagnostic-*

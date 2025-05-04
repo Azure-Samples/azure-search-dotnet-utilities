@@ -41,25 +41,54 @@ class Program
         //Set up source and target search service clients
         ConfigurationSetup();
 
-        //Backup the source index
-        Console.WriteLine("\nSTART INDEX BACKUP");
-        BackupIndexAndDocuments();
+        bool hasSourceService = !string.IsNullOrEmpty(SourceSearchServiceName);
+        bool hasSourceIndex = !string.IsNullOrEmpty(SourceIndexName);
+        bool hasSourceConfig = hasSourceService && hasSourceIndex;
+        bool hasTargetConfig = !string.IsNullOrEmpty(TargetSearchServiceName) && !string.IsNullOrEmpty(TargetIndexName);
+        bool hasBackupFiles = Directory.Exists(BackupDirectory) && Directory.GetFiles(BackupDirectory, "*.json").Length > 0;
 
-        //Recreate and import content to target index
-        Console.WriteLine("\nSTART INDEX RESTORE");
-        DeleteIndex();
-        CreateTargetIndex();
-        ImportFromJSON();
-        Console.WriteLine("\n  Waiting 10 seconds for target to index content...");
-        Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\n");
-        Thread.Sleep(10000);
+        if (hasSourceConfig)
+        {
+            // Mode 1: Backup/Export source index
+            Console.WriteLine("\nSTART INDEX BACKUP");
+            BackupIndexAndDocuments();
+        }
 
-        // Validate all content is in target index
-        int sourceCount = GetCurrentDocCount(SourceSearchClient);
-        int targetCount = GetCurrentDocCount(TargetSearchClient);
-        Console.WriteLine("\nSAFEGUARD CHECK: Source and target index counts should match");
-        Console.WriteLine(" Source index contains {0} docs", sourceCount);
-        Console.WriteLine(" Target index contains {0} docs\n", targetCount);
+        if (hasTargetConfig)
+        {
+            if (hasSourceConfig)
+            {
+                // Mode 1: Full backup and restore
+                Console.WriteLine("\nSTART INDEX RESTORE");
+                DeleteIndex();
+                CreateTargetIndex();
+                ImportFromJSON();
+            }
+            else if (hasBackupFiles)
+            {
+                // Mode 3: Only restore from existing backup
+                Console.WriteLine("\nSTART INDEX RESTORE FROM EXISTING BACKUP");
+                DeleteIndex();
+                CreateTargetIndex();
+                ImportFromJSON();
+            }
+            else
+            {
+                Console.WriteLine("\nERROR: Cannot restore - no backup files found in {0}", BackupDirectory);
+                return;
+            }
+
+            Console.WriteLine("\n  Waiting 10 seconds for target to index content...");
+            Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\n");
+            Thread.Sleep(10000);
+
+            // Validate all content is in target index
+            int sourceCount = GetCurrentDocCount(SourceSearchClient);
+            int targetCount = GetCurrentDocCount(TargetSearchClient);
+            Console.WriteLine("\nSAFEGUARD CHECK: Source and target index counts should match");
+            Console.WriteLine(" Source index contains {0} docs", sourceCount);
+            Console.WriteLine(" Target index contains {0} docs\n", targetCount);
+        }
 
         Console.WriteLine("Press any key to continue...");
         Console.ReadLine();
@@ -67,10 +96,10 @@ class Program
 
     static void ConfigurationSetup()
     {
-
         IConfigurationBuilder builder = new ConfigurationBuilder().AddJsonFile("appsettings.json");
         IConfigurationRoot configuration = builder.Build();
 
+        // Read all configuration values
         SourceSearchServiceName = configuration["SourceSearchServiceName"];
         SourceAdminKey = configuration["SourceAdminKey"];
         SourceIndexName = configuration["SourceIndexName"];
@@ -79,19 +108,59 @@ class Program
         TargetIndexName = configuration["TargetIndexName"];
         BackupDirectory = configuration["BackupDirectory"];
 
+        // Print configuration based on what's available
         Console.WriteLine("CONFIGURATION:");
-        Console.WriteLine("\n  Source service and index {0}, {1}", SourceSearchServiceName, SourceIndexName);
-        Console.WriteLine("\n  Target service and index: {0}, {1}", TargetSearchServiceName, TargetIndexName);
+        Console.WriteLine($"SourceSearchServiceName: '{SourceSearchServiceName}'");
+        Console.WriteLine($"SourceIndexName: '{SourceIndexName}'");
+        
+        bool hasSourceService = !string.IsNullOrEmpty(SourceSearchServiceName);
+        bool hasSourceIndex = !string.IsNullOrEmpty(SourceIndexName);
+        
+        if (hasSourceService && hasSourceIndex)
+        {
+            Console.WriteLine("\n  Source service and index: {0}, {1}", SourceSearchServiceName, SourceIndexName);
+        }
+        if (!string.IsNullOrEmpty(TargetSearchServiceName) && !string.IsNullOrEmpty(TargetIndexName))
+        {
+            Console.WriteLine("\n  Target service and index: {0}, {1}", TargetSearchServiceName, TargetIndexName);
+        }
         Console.WriteLine("\n  Backup directory: " + BackupDirectory);
         Console.WriteLine("\nDoes this look correct? Press any key to continue, Ctrl+C to cancel.");
         Console.ReadLine();
 
-        SourceIndexClient = new SearchIndexClient(new Uri("https://" + SourceSearchServiceName + ".search.windows.net"), new AzureKeyCredential(SourceAdminKey));
-        SourceSearchClient = SourceIndexClient.GetSearchClient(SourceIndexName);
+        // Only create source clients if source configuration is available
+        if (hasSourceService && hasSourceIndex && !string.IsNullOrEmpty(SourceAdminKey))
+        {
+            try
+            {
+                SourceIndexClient = new SearchIndexClient(
+                    new Uri("https://" + SourceSearchServiceName + ".search.windows.net"), 
+                    new AzureKeyCredential(SourceAdminKey));
+                SourceSearchClient = SourceIndexClient.GetSearchClient(SourceIndexName);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error creating source clients: {0}", ex.Message);
+                throw;
+            }
+        }
 
-
-        TargetIndexClient = new SearchIndexClient(new Uri($"https://" + TargetSearchServiceName + ".search.windows.net"), new AzureKeyCredential(TargetAdminKey));
-        TargetSearchClient = TargetIndexClient.GetSearchClient(TargetIndexName);
+        // Only create target clients if target configuration is available
+        if (!string.IsNullOrEmpty(TargetSearchServiceName) && !string.IsNullOrEmpty(TargetAdminKey) && !string.IsNullOrEmpty(TargetIndexName))
+        {
+            try
+            {
+                TargetIndexClient = new SearchIndexClient(
+                    new Uri("https://" + TargetSearchServiceName + ".search.windows.net"), 
+                    new AzureKeyCredential(TargetAdminKey));
+                TargetSearchClient = TargetIndexClient.GetSearchClient(TargetIndexName);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error creating target clients: {0}", ex.Message);
+                throw;
+            }
+        }
     }
 
     static void BackupIndexAndDocuments()
@@ -137,7 +206,6 @@ class Program
     static void ExportToJSON(int Skip, string FileName)
     {
         // Extract all the documents from the selected index to JSON files in batches of 500 docs / file
-        string json = string.Empty;
         try
         {
             SearchOptions options = new SearchOptions()
@@ -148,23 +216,44 @@ class Program
             };
 
             SearchResults<SearchDocument> response = SourceSearchClient.Search<SearchDocument>("*", options);
+            var documents = response.GetResults().ToList();
 
-            foreach (var doc in response.GetResults())
+            if (documents.Count == 0)
             {
-                json += JsonSerializer.Serialize(doc.Document) + ",";
-                json = json.Replace("\"Latitude\":", "\"type\": \"Point\", \"coordinates\": [");
-                json = json.Replace("\"Longitude\":", "");
-                json = json.Replace(",\"IsEmpty\":false,\"Z\":null,\"M\":null,\"CoordinateSystem\":{\"EpsgId\":4326,\"Id\":\"4326\",\"Name\":\"WGS84\"}", "]");
-                json += "\n";
+                Console.WriteLine("  No documents found in this batch");
+                return;
             }
 
-            // Output the formatted content to a file
-            json = json.Substring(0, json.Length - 3); // remove trailing comma
-            File.WriteAllText(FileName, "{\"value\": [");
-            File.AppendAllText(FileName, json);
-            File.AppendAllText(FileName, "]}");
-            Console.WriteLine("  Total documents: {0}", response.GetResults().Count().ToString());
-            json = string.Empty;
+            // Create a list to hold all document JSON strings
+            var jsonDocuments = new List<string>();
+
+            foreach (var doc in documents)
+            {
+                string docJson = JsonSerializer.Serialize(doc.Document);
+                // Handle GeoPoint fields if they exist
+                docJson = docJson.Replace("\"Latitude\":", "\"type\": \"Point\", \"coordinates\": [");
+                docJson = docJson.Replace("\"Longitude\":", "");
+                docJson = docJson.Replace(",\"IsEmpty\":false,\"Z\":null,\"M\":null,\"CoordinateSystem\":{\"EpsgId\":4326,\"Id\":\"4326\",\"Name\":\"WGS84\"}", "]");
+                jsonDocuments.Add(docJson);
+            }
+
+            // Create the final JSON structure
+            string finalJson = "{\"value\": [" + string.Join(",", jsonDocuments) + "]}";
+
+            // Validate the JSON before writing
+            try
+            {
+                JsonDocument.Parse(finalJson);
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"  Error: Generated invalid JSON: {ex.Message}");
+                return;
+            }
+
+            // Write the validated JSON to file
+            File.WriteAllText(FileName, finalJson);
+            Console.WriteLine("  Total documents: {0}", documents.Count);
         }
         catch (Exception ex)
         {
@@ -246,7 +335,18 @@ class Program
         // Use the schema file to create a copy of this index
         // I like using REST here since I can just take the response as-is
 
-        string json = File.ReadAllText(Path.Combine(BackupDirectory, SourceIndexName + ".schema"));
+        // Find any .schema file in the backup directory
+        var schemaFiles = Directory.GetFiles(BackupDirectory, "*.schema");
+        if (schemaFiles.Length == 0)
+        {
+            throw new FileNotFoundException($"No schema file found in {BackupDirectory}. Please ensure a .schema file exists.");
+        }
+        if (schemaFiles.Length > 1)
+        {
+            throw new InvalidOperationException($"Multiple schema files found in {BackupDirectory}. Please ensure only one .schema file exists.");
+        }
+
+        string json = File.ReadAllText(schemaFiles[0]);
 
         // Do some cleaning of this file to change index name, etc
         json = "{" + json.Substring(json.IndexOf("\"name\""));
@@ -267,6 +367,7 @@ class Program
         catch (Exception ex)
         {
             Console.WriteLine("  Error: {0}", ex.Message);
+            throw;
         }
     }
 
@@ -306,14 +407,39 @@ class Program
             {
                 Console.WriteLine("  -Uploading documents from file {0}", fileName);
                 string json = File.ReadAllText(fileName);
+                
+                // Validate JSON structure
+                try
+                {
+                    var jsonDoc = JsonDocument.Parse(json);
+                    if (!jsonDoc.RootElement.TryGetProperty("value", out _))
+                    {
+                        Console.WriteLine($"  Error: JSON file {fileName} does not contain a 'value' array");
+                        continue;
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    Console.WriteLine($"  Error: Invalid JSON in file {fileName}: {ex.Message}");
+                    continue;
+                }
+
                 Uri uri = new Uri(ServiceUri, "/indexes/" + TargetIndexName + "/docs/index");
                 HttpResponseMessage response = AzureSearchHelper.SendSearchRequest(HttpClient, HttpMethod.Post, uri, json);
-                response.EnsureSuccessStatusCode();
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorContent = response.Content.ReadAsStringAsync().Result;
+                    Console.WriteLine($"  Error: Response status code does not indicate success: {(int)response.StatusCode} ({response.StatusCode})");
+                    Console.WriteLine($"  Error details: {errorContent}");
+                    throw new Exception($"Failed to upload documents from {fileName}. Status: {response.StatusCode}");
+                }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine("  Error: {0}", ex.Message);
+            throw;
         }
     }
 }
