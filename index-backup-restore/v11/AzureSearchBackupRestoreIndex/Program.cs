@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,34 +36,43 @@ class Program
     private static int MaxBatchSize = 500;          // JSON files will contain this many documents / file and can be up to 1000
     private static int ParallelizedJobs = 10;       // Output content in parallel jobs
 
+    private static bool DoBackup;
+    private static bool DoRestore;
+
     static void Main()
     {
         //Get source and target search service info and index names from appsettings.json file
         //Set up source and target search service clients
         ConfigurationSetup();
 
-        //Backup the source index
-        Console.WriteLine("\nSTART INDEX BACKUP");
-        BackupIndexAndDocuments();
+        if (DoBackup)
+        {
+            //Backup the source index
+            Console.WriteLine("\nSTART INDEX BACKUP");
+            BackupIndexAndDocuments();
+        }
 
-        //Recreate and import content to target index
-        Console.WriteLine("\nSTART INDEX RESTORE");
-        DeleteIndex();
-        CreateTargetIndex();
-        ImportFromJSON();
-        Console.WriteLine("\n  Waiting 10 seconds for target to index content...");
-        Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\n");
-        Thread.Sleep(10000);
+        if (DoRestore)
+        {
+            //Recreate and import content to target index
+            Console.WriteLine("\nSTART INDEX RESTORE");
+            DeleteIndex();
+            CreateTargetIndex();
+            ImportFromJSON();
+            Console.WriteLine("\n  Waiting 10 seconds for target to index content...");
+            Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\n");
+            Thread.Sleep(10000);
 
-        // Validate all content is in target index
-        int sourceCount = GetCurrentDocCount(SourceSearchClient);
-        int targetCount = GetCurrentDocCount(TargetSearchClient);
-        Console.WriteLine("\nSAFEGUARD CHECK: Source and target index counts should match");
-        Console.WriteLine(" Source index contains {0} docs", sourceCount);
-        Console.WriteLine(" Target index contains {0} docs\n", targetCount);
+            // Validate all content is in target index
+            int sourceCount = GetCurrentDocCount(SourceSearchClient);
+            int targetCount = GetCurrentDocCount(TargetSearchClient);
+            Console.WriteLine("\nSAFEGUARD CHECK: Source and target index counts should match");
+            Console.WriteLine(" Source index contains {0} docs", sourceCount);
+            Console.WriteLine(" Target index contains {0} docs\n", targetCount);
 
-        Console.WriteLine("Press any key to continue...");
-        Console.ReadLine();
+            Console.WriteLine("Press any key to continue...");
+            Console.ReadLine();
+        }
     }
 
     static void ConfigurationSetup()
@@ -79,6 +89,9 @@ class Program
         TargetIndexName = configuration["TargetIndexName"];
         BackupDirectory = configuration["BackupDirectory"];
 
+        DoBackup = Convert.ToBoolean(configuration["DoBackup"]);
+        DoRestore = Convert.ToBoolean(configuration["DoRestore"]);
+
         Console.WriteLine("CONFIGURATION:");
         Console.WriteLine("\n  Source service and index {0}, {1}", SourceSearchServiceName, SourceIndexName);
         Console.WriteLine("\n  Target service and index: {0}, {1}", TargetSearchServiceName, TargetIndexName);
@@ -86,12 +99,17 @@ class Program
         Console.WriteLine("\nDoes this look correct? Press any key to continue, Ctrl+C to cancel.");
         Console.ReadLine();
 
-        SourceIndexClient = new SearchIndexClient(new Uri("https://" + SourceSearchServiceName + ".search.windows.net"), new AzureKeyCredential(SourceAdminKey));
-        SourceSearchClient = SourceIndexClient.GetSearchClient(SourceIndexName);
+        if (DoBackup)
+        {
+            SourceIndexClient = new SearchIndexClient(new Uri("https://" + SourceSearchServiceName + ".search.windows.net"), new AzureKeyCredential(SourceAdminKey));
+            SourceSearchClient = SourceIndexClient.GetSearchClient(SourceIndexName);
+        }
 
-
-        TargetIndexClient = new SearchIndexClient(new Uri($"https://" + TargetSearchServiceName + ".search.windows.net"), new AzureKeyCredential(TargetAdminKey));
-        TargetSearchClient = TargetIndexClient.GetSearchClient(TargetIndexName);
+        if (DoRestore)
+        {
+            TargetIndexClient = new SearchIndexClient(new Uri($"https://" + TargetSearchServiceName + ".search.windows.net"), new AzureKeyCredential(TargetAdminKey));
+            TargetSearchClient = TargetIndexClient.GetSearchClient(TargetIndexName);
+        }
     }
 
     static void BackupIndexAndDocuments()
@@ -149,19 +167,21 @@ class Program
 
             SearchResults<SearchDocument> response = SourceSearchClient.Search<SearchDocument>("*", options);
 
+            List<string> jsonLines = new List<string>();
+
             foreach (var doc in response.GetResults())
             {
-                json += JsonSerializer.Serialize(doc.Document) + ",";
+                json = JsonSerializer.Serialize(doc.Document);
                 json = json.Replace("\"Latitude\":", "\"type\": \"Point\", \"coordinates\": [");
                 json = json.Replace("\"Longitude\":", "");
                 json = json.Replace(",\"IsEmpty\":false,\"Z\":null,\"M\":null,\"CoordinateSystem\":{\"EpsgId\":4326,\"Id\":\"4326\",\"Name\":\"WGS84\"}", "]");
-                json += "\n";
+
+                jsonLines.Add(json);
             }
 
             // Output the formatted content to a file
-            json = json.Substring(0, json.Length - 3); // remove trailing comma
             File.WriteAllText(FileName, "{\"value\": [");
-            File.AppendAllText(FileName, json);
+            File.AppendAllText(FileName, String.Join(",\n", jsonLines.ToArray()));
             File.AppendAllText(FileName, "]}");
             Console.WriteLine("  Total documents: {0}", response.GetResults().Count().ToString());
             json = string.Empty;
