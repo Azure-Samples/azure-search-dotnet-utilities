@@ -26,6 +26,8 @@ class Program
     private static string TargetAdminKey;
     private static string TargetIndexName;
     private static string BackupDirectory;
+    private static readonly Dictionary<string, VectorizerCredentialBinding> VectorizerBindings =
+        new Dictionary<string, VectorizerCredentialBinding>(StringComparer.Ordinal);
 
     private static SearchIndexClient SourceIndexClient;
     private static SearchClient SourceSearchClient;
@@ -47,8 +49,9 @@ class Program
 
         //Recreate and import content to target index
         Console.WriteLine("\nSTART INDEX RESTORE");
+        string preparedSchema = PrepareTargetSchema();
         DeleteIndex();
-        CreateTargetIndex();
+        CreateTargetIndex(preparedSchema);
         ImportFromJSON();
         Console.WriteLine("\n  Waiting 10 seconds for target to index content...");
         Console.WriteLine("  NOTE: For really large indexes it may take longer to index all content.\n");
@@ -78,6 +81,22 @@ class Program
         TargetAdminKey = configuration["TargetAdminKey"];
         TargetIndexName = configuration["TargetIndexName"];
         BackupDirectory = configuration["BackupDirectory"];
+        VectorizerBindings.Clear();
+        foreach (IConfigurationSection section in configuration.GetSection("AzureOpenAIVectorizerBindings").GetChildren())
+        {
+            bool useManagedIdentity = false;
+            string choice = section["UseManagedIdentity"];
+            if (choice != null && !bool.TryParse(choice, out useManagedIdentity))
+                throw new InvalidOperationException("Schema preflight failed: invalid managed-identity choice.");
+            foreach (IConfigurationSection property in section.GetChildren())
+                if (property.Key != "ApiKeyEnvironmentVariable" && property.Key != "UseManagedIdentity")
+                    throw new InvalidOperationException("Schema preflight failed: unknown credential binding option.");
+            VectorizerBindings.Add(section.Key, new VectorizerCredentialBinding
+            {
+                ApiKeyEnvironmentVariable = section["ApiKeyEnvironmentVariable"],
+                UseManagedIdentity = useManagedIdentity
+            });
+        }
 
         Console.WriteLine("CONFIGURATION:");
         Console.WriteLine("\n  Source service and index {0}, {1}", SourceSearchServiceName, SourceIndexName);
@@ -242,17 +261,21 @@ class Program
 
     static void CreateTargetIndex()
     {
+        CreateTargetIndex(PrepareTargetSchema());
+    }
+
+    static string PrepareTargetSchema()
+    {
+        return SchemaPreparation.Prepare(
+            File.ReadAllText(Path.Combine(BackupDirectory, SourceIndexName + ".schema")),
+            TargetIndexName, VectorizerBindings, Environment.GetEnvironmentVariable);
+    }
+
+    static void CreateTargetIndex(string json)
+    {
         Console.WriteLine("\n  Create target index {0} in {1} search service", TargetIndexName, TargetSearchServiceName);
         // Use the schema file to create a copy of this index
         // I like using REST here since I can just take the response as-is
-
-        string json = File.ReadAllText(Path.Combine(BackupDirectory, SourceIndexName + ".schema"));
-
-        // Do some cleaning of this file to change index name, etc
-        json = "{" + json.Substring(json.IndexOf("\"name\""));
-        int indexOfIndexName = json.IndexOf("\"", json.IndexOf("name\"") + 5) + 1;
-        int indexOfEndOfIndexName = json.IndexOf("\"", indexOfIndexName);
-        json = json.Substring(0, indexOfIndexName) + TargetIndexName + json.Substring(indexOfEndOfIndexName);
 
         Uri ServiceUri = new Uri("https://" + TargetSearchServiceName + ".search.windows.net");
         HttpClient HttpClient = new HttpClient();
