@@ -14,11 +14,6 @@ internal sealed class VectorizerCredentialBinding
 
 internal static class SchemaPreparation
 {
-    private static readonly HashSet<string> CredentialHeaders = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "api-key", "x-api-key", "x-functions-key", "authorization", "ocp-apim-subscription-key"
-    };
-
     // New-target POST restore preparation, not existing-index PUT preservation.
     // This helper has no file, network, logging, or environment access of its own.
     internal static string Prepare(
@@ -88,14 +83,20 @@ internal static class SchemaPreparation
                 if (kind == "aiServicesVision" && vectorizer["aiServicesVisionParameters"] is JsonObject visionParameters)
                     RejectUnsupportedRedaction(visionParameters["apiKey"],
                         "vectorSearch.vectorizers[" + i + "].aiServicesVisionParameters.apiKey");
-                if (kind == "customWebApi" && vectorizer["customWebApiParameters"] is JsonObject customParameters &&
-                    customParameters["httpHeaders"] is JsonObject headers)
-                    foreach (var header in headers)
-                        if (CredentialHeaders.Contains(header.Key) && TryString(header.Value, out string headerValue) &&
-                            (headerValue.Trim() == "<redacted>" ||
-                             Regex.IsMatch(headerValue.Trim(), @"\A(?i:Bearer)\s+<redacted>\z")))
-                            throw new InvalidOperationException("Schema preflight failed at vectorSearch.vectorizers[" +
-                                i + "].customWebApiParameters.httpHeaders: unsupported redacted credential header.");
+                if (kind == "customWebApi" && vectorizer["customWebApiParameters"] is JsonObject customParameters)
+                {
+                    if (TryString(customParameters["uri"], out string uri) &&
+                        Uri.UnescapeDataString(uri).Contains("<redacted>", StringComparison.Ordinal))
+                        throw new InvalidOperationException("Schema preflight failed at vectorSearch.vectorizers[" +
+                            i + "].customWebApiParameters.uri: unsupported redacted URI credential.");
+                    if (customParameters["httpHeaders"] is JsonObject headers)
+                        foreach (var header in headers)
+                            if (TryString(header.Value, out string headerValue) &&
+                                (headerValue.Trim() == "<redacted>" ||
+                                 Regex.IsMatch(headerValue.Trim(), @"\A(?i:Bearer)\s+<redacted>\z")))
+                                throw new InvalidOperationException("Schema preflight failed at vectorSearch.vectorizers[" +
+                                    i + "].customWebApiParameters.httpHeaders: unsupported redacted header.");
+                }
                 if (!isAzureOpenAI)
                 {
                     if (binding != null)

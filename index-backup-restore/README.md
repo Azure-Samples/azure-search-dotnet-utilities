@@ -74,6 +74,64 @@ This sample is available in two versions:
 
 1. Compile and Run the project.
 
+## v11 vectorizer credentials
+
+Index GET responses can return `"<redacted>"` instead of Azure OpenAI vectorizer API keys. These placeholders cannot be copied into a new index. The v11 sample prepares the backed-up schema before deleting the target index and requires an explicit credential binding for each redacted Azure OpenAI vectorizer.
+
+Add `AzureOpenAIVectorizerBindings` to `appsettings.json`. Each key must exactly match a vectorizer's `name` in the source schema. Choose one of the following modes per binding.
+
+For an API key, reference an environment variable rather than putting the Azure OpenAI key in the configuration:
+
+```json
+{
+  "AzureOpenAIVectorizerBindings": {
+    "my-vectorizer": {
+      "ApiKeyEnvironmentVariable": "RESTORE_AZURE_OPENAI_KEY"
+    }
+  }
+}
+```
+
+Set that variable in the process that runs the sample, for example in PowerShell:
+
+```powershell
+$env:RESTORE_AZURE_OPENAI_KEY = "<your-Azure-OpenAI-key>"
+```
+
+For managed identity, use this binding instead:
+
+```json
+{
+  "AzureOpenAIVectorizerBindings": {
+    "my-vectorizer": {
+      "UseManagedIdentity": true
+    }
+  }
+}
+```
+
+Managed-identity binding removes `apiKey` from the target schema and preserves `authIdentity`. With no explicit `authIdentity`, Azure AI Search uses its system-assigned identity. The target must already have the required identity and Azure OpenAI permissions. API-key binding cannot be combined with an explicit `authIdentity` in the backed-up vectorizer.
+
+Missing or invalid references, conflicting modes, and unused bindings fail before target deletion. Preflight checks configuration and redacted placeholders, not whether an actual key is accepted or an identity is authorized. Verify credentials and permissions with a real text-vector query before migrating an existing target. Schemas without redacted credentials do not require bindings.
+
+Redacted credentials for other vectorizer kinds or index encryption are not rebound automatically. In particular, Custom Web API GET responses redact **all** header values and sensitive URI query values such as `code` and `sig`, including URL-encoded placeholders. Restore fails before target deletion for these unsupported values; supply actual values through a separately prepared restore workflow rather than forwarding the placeholders.
+
+## v11 live regression tests
+
+The dependency-free Python tests run the built executable against existing Azure AI Search services. They check valid document backup JSON and readback, and verify that unsupported redacted custom headers and URI credentials preserve a target's schema, ETag, and guard document.
+
+Use Python 3.8 or later and a .NET 8-compatible SDK/runtime. Set `E2E_SOURCE_SEARCH_SERVICE`, `E2E_SOURCE_SEARCH_ADMIN_KEY`, `E2E_TARGET_SEARCH_SERVICE`, and `E2E_TARGET_SEARCH_ADMIN_KEY` in the test process. Also set `E2E_CUSTOM_VECTORIZER_URI` to an existing permitted HTTPS endpoint without secret query parameters. The custom cases use synthetic header/query values and do not issue vector queries or establish vectorizer authorization.
+
+From the repository root:
+
+```powershell
+dotnet restore index-backup-restore\v11\AzureSearchBackupRestoreIndex\AzureSearchBackupRestoreIndex.csproj --source https://packagefeedproxy.microsoft.io/nuget/v3/index.json
+dotnet build index-backup-restore\v11\AzureSearchBackupRestoreIndex\AzureSearchBackupRestoreIndex.csproj --no-restore
+python index-backup-restore\v11\tests\test_document_roundtrip.py -v
+```
+
+The tests create uniquely named `v11-e2e-*` indexes and synthetic documents, delete only indexes they created, and verify cleanup with GET 404 responses. They never overwrite a pre-existing index. The configured services need capacity for one additional index each, or two if source and target are the same service. No services or role assignments are created.
+
 ## Next steps
 
 You can learn more about Azure AI Search on the [official documentation site](https://docs.microsoft.com/azure/search).

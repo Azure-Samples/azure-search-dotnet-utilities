@@ -178,7 +178,7 @@ class Program
             }
 
             // Output the formatted content to a file
-            json = json.Substring(0, json.Length - 3); // remove trailing comma
+            json = json.TrimEnd(',', '\n');
             File.WriteAllText(FileName, "{\"value\": [");
             File.AppendAllText(FileName, json);
             File.AppendAllText(FileName, "]}");
